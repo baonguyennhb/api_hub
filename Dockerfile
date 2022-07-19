@@ -8,8 +8,9 @@ RUN npm i npm@latest -g
 
 # COPY package.json package-lock.json ./
 
-# RUN npm install
-
 COPY . .
+
+RUN npm install
+
 #
 CMD ["node","index.js"]
