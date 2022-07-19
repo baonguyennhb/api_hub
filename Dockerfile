@@ -10,7 +10,7 @@ RUN npm i npm@latest -g
 
 COPY . .
 
-RUN npm install
+#RUN npm install
 
 #
 CMD ["node","index.js"]
