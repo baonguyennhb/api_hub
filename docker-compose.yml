@@ -3,7 +3,7 @@ services:
   server:
     build: .
     container_name: api_hub
-    command: npm start
+    command: node index
     ports:
       - "4000:4000"
     environment:
