@@ -16,7 +16,6 @@
     "fs": "^0.0.1-security",
     "moment": "^2.29.4",
     "mqtt": "^4.3.7",
-    "wisepaas-datahub-edge-nodejs-sdk": "^1.0.6",
     "xml2js": "^0.4.23",
     "xml2json": "^0.12.0"
   },
