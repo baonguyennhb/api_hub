@@ -6,11 +6,11 @@ WORKDIR /app
 
 RUN npm i npm@latest -g
 
-# COPY package.json package-lock.json ./
+COPY package.json package-lock.json ./
 
 COPY . .
 
-#RUN npm install
+RUN npm install
 
 #
 CMD ["node","index.js"]
