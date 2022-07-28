@@ -14,11 +14,11 @@ const mqtt = require('mqtt');
 const { parseString } = require('xml2js');
 var options = {
     port: 1883,
-    username: 'Goy2waYPAGQP:n3Q78J2BBKeK',
-    password: 'CVemCimzm0duGLr6OnvJ',
+    username: 'Bbql3pmm5weM:dgqMkW08KwQb',
+    password: 'FFchKM7La1sHs2QsRzzu',
 };
 
-const client = mqtt.connect("mqtt://rabbitmq-001-pub.hz.wise-paas.com.cn:1883", options);
+const client = mqtt.connect("mqtt://10.129.167.251:1883", options);
 
 let dataConfig = {}
 
@@ -67,26 +67,26 @@ const callAPI = async () => {
     const response = await axios.get('http://14.225.244.63:8083/VendingInterface.asmx/SUNGRP_getInstant', { params })
     let xmlData = response.data
     let jsonData = xmlParser.toJson(xmlData)
-    const valueData = JSON.parse(jsonData).DataTable['diffgr:diffgram'].DocumentElement.dtResult
+    const valueData = JSON.parse(jsonData).DataTable['diffgr:diffgram'].DocumentElement?.dtResult
     const listModel = [20698013, 20697912, 20697917, 20697923, 20697924, 20697927, 20697996, 20697875, 20697666, 20697578, 20697586, 20697594]
     let Val = {}
     for (let i = 0; i < listModel.length; i++) {
-        const dataObjectFilterByModel = valueData.filter(value => value.MA_DIEMDO === listModel[i].toString())
+        const dataObjectFilterByModel =  valueData ? valueData.filter(value => value.MA_DIEMDO === listModel[i].toString()) : []
         const dataObject = dataObjectFilterByModel[dataObjectFilterByModel.length - 1]
-        Val[`${listModel[i]}:MA_DIEMDO`] = parseFloat(dataObject.MA_DIEMDO)
-        Val[`${listModel[i]}:SO_CTO`] = parseFloat(dataObject.SO_CTO)
-        Val[`${listModel[i]}:IMPORT_KWH`] = parseFloat(dataObject.IMPORT_KWH)
-        Val[`${listModel[i]}:EXPORT_KWH`] = parseFloat(dataObject.EXPORT_KWH)
-        Val[`${listModel[i]}:IMPORT_VAR`] = parseFloat(dataObject.IMPORT_VAR)
-        Val[`${listModel[i]}:EXPORT_VAR`] = parseFloat(dataObject.EXPORT_VAR)
-        Val[`${listModel[i]}:Ia`] = parseFloat(dataObject.Ia)
-        Val[`${listModel[i]}:Ib`] = parseFloat(dataObject.Ib)
-        Val[`${listModel[i]}:Ic`] = parseFloat(dataObject.Ic)
-        Val[`${listModel[i]}:Ua`] = parseFloat(dataObject.Ua)
-        Val[`${listModel[i]}:Ub`] = parseFloat(dataObject.Ub)
-        Val[`${listModel[i]}:Uc`] = parseFloat(dataObject.Uc)
-        Val[`${listModel[i]}:Cosphi`] = parseFloat(dataObject.Cosphi)
-        Val[`${listModel[i]}:NGAYGIO`] = dataObject.NGAYGIO
+        Val[`${listModel[i]}:MA_DIEMDO`] = valueData ? parseFloat(dataObject?.MA_DIEMDO) : 0
+        Val[`${listModel[i]}:SO_CTO`] = valueData ? parseFloat(dataObject?.SO_CTO) : 0
+        Val[`${listModel[i]}:IMPORT_KWH`] = valueData ? parseFloat(dataObject?.IMPORT_KWH) : 0
+        Val[`${listModel[i]}:EXPORT_KWH`] = valueData ? parseFloat(dataObject?.EXPORT_KWH) : 0
+        Val[`${listModel[i]}:IMPORT_VAR`] = valueData ? parseFloat(dataObject?.IMPORT_VAR) : 0
+        Val[`${listModel[i]}:EXPORT_VAR`] = valueData ? parseFloat(dataObject?.EXPORT_VAR) : 0
+        Val[`${listModel[i]}:Ia`] = valueData ? parseFloat(dataObject?.Ia) : 0
+        Val[`${listModel[i]}:Ib`] = valueData ? parseFloat(dataObject?.Ib) : 0 
+        Val[`${listModel[i]}:Ic`] = valueData ? parseFloat(dataObject?.Ic) : 0
+        Val[`${listModel[i]}:Ua`] = valueData ? parseFloat(dataObject?.Ua) : 0
+        Val[`${listModel[i]}:Ub`] = valueData ? parseFloat(dataObject?.Ub) : 0
+        Val[`${listModel[i]}:Uc`] = valueData ? parseFloat(dataObject?.Uc) : 0
+        Val[`${listModel[i]}:Cosphi`] = valueData ? parseFloat(dataObject?.Cosphi) : 0
+        Val[`${listModel[i]}:NGAYGIO`] = valueData ?  dataObject?.NGAYGIO : " "
     }
     const data = {
         "d": {
@@ -101,7 +101,7 @@ const callAPI = async () => {
 client.on("connect", ack => {
     try {
         console.log("MQTT Client Connected!")
-        dataConn = { "d": { "scada_qQ2N60h1DmL": { "Con": 1 } }, "ts": Date.now() }
+        dataConn = { "d": { "scada_UzVa32VanG4I": { "Con": 1 } }, "ts": Date.now() }
         dataConfig = {
             "d": {
                 "scada_qQ2N60h1DmL": {
@@ -332,7 +332,6 @@ client.on("connect", ack => {
         console.log("success config tag!")
         setInterval(async () => {
             // Call API 
-            const { madiemdo, socongto, importkwh, exportkwh, importvar, exportvar, Ia, Ib, Ic, Ua, Ub, Uc, Cosphi, ngayGio } = await callAPI()
             // Data
             // data = {
             //     "d": {
@@ -357,7 +356,7 @@ client.on("connect", ack => {
             //     },
             //     "ts": Date.now()
             // }
-            const data = callAPI()
+            const data =  await callAPI()
             client.publish('iot-2/evt/wadata/fmt/scada_qQ2N60h1DmL', JSON.stringify(data))
             console.log("Send Data")
         }, 2 * 60 * 1000)
@@ -376,12 +375,6 @@ app.get('/', async (req, res) => {
     const response = await axios.get('http://14.225.244.63:8083/VendingInterface.asmx/SUNGRP_getInstant', { params })
     let xmlData = response.data
     let jsonData = xmlParser.toJson(xmlData)
-
-    // let dataObjectList = []
-    // for (let i = 0; i < listModel.length; i++) {
-    //     const dataObjectFilterByModel = valueData.filter(value => value.MA_DIEMDO === listModel[i].toString())
-    //     const dataObject = dataObjectFilterByModel[dataObjectFilterByModel.length - 1]
-    // }
 
     const valueData = JSON.parse(jsonData).DataTable['diffgr:diffgram'].DocumentElement.dtResult
 
@@ -831,27 +824,28 @@ app.get('/data', async (req, res) => {
     const response = await axios.get('http://14.225.244.63:8083/VendingInterface.asmx/SUNGRP_getInstant', { params })
     let xmlData = response.data
     let jsonData = xmlParser.toJson(xmlData)
-    const valueData = JSON.parse(jsonData).DataTable['diffgr:diffgram'].DocumentElement.dtResult
+    const valueData = JSON.parse(jsonData).DataTable['diffgr:diffgram'].DocumentElement?.dtResult
+    console.log(valueData)
     const listModel = [20698013, 20697912, 20697917, 20697923, 20697924, 20697927, 20697996, 20697875, 20697666, 20697578, 20697586, 20697594]
     let dataObjectList = []
     let Val = {}
     for (let i = 0; i < listModel.length; i++) {
-        const dataObjectFilterByModel = valueData.filter(value => value.MA_DIEMDO === listModel[i].toString())
+        const dataObjectFilterByModel =  valueData ? valueData.filter(value => value.MA_DIEMDO === listModel[i].toString()) : []
         const dataObject = dataObjectFilterByModel[dataObjectFilterByModel.length - 1]
-        Val[`${listModel[i]}:MA_DIEMDO`] = dataObject.MA_DIEMDO
-        Val[`${listModel[i]}:SO_CTO`] = dataObject.SO_CTO
-        Val[`${listModel[i]}:IMPORT_KWH`] = dataObject.IMPORT_KWH
-        Val[`${listModel[i]}:EXPORT_KWH`] = dataObject.EXPORT_KWH
-        Val[`${listModel[i]}:IMPORT_VAR`] = dataObject.IMPORT_VAR
-        Val[`${listModel[i]}:EXPORT_VAR`] = dataObject.EXPORT_VAR
-        Val[`${listModel[i]}:Ia`] = dataObject.Ia
-        Val[`${listModel[i]}:Ib`] = dataObject.Ib
-        Val[`${listModel[i]}:Ic`] = dataObject.Ic
-        Val[`${listModel[i]}:Ua`] = dataObject.Ua
-        Val[`${listModel[i]}:Ub`] = dataObject.Ub
-        Val[`${listModel[i]}:Uc`] = dataObject.Uc
-        Val[`${listModel[i]}:Cosphi`] = dataObject.Cosphi
-        Val[`${listModel[i]}:NGAYGIO`] = dataObject.NGAYGIO
+        Val[`${listModel[i]}:MA_DIEMDO`] = valueData ? parseFloat(dataObject?.MA_DIEMDO) : 0
+        Val[`${listModel[i]}:SO_CTO`] = valueData ? parseFloat(dataObject?.SO_CTO) : 0
+        Val[`${listModel[i]}:IMPORT_KWH`] = valueData ? parseFloat(dataObject?.IMPORT_KWH) : 0
+        Val[`${listModel[i]}:EXPORT_KWH`] = valueData ? parseFloat(dataObject?.EXPORT_KWH) : 0
+        Val[`${listModel[i]}:IMPORT_VAR`] = valueData ? parseFloat(dataObject?.IMPORT_VAR) : 0
+        Val[`${listModel[i]}:EXPORT_VAR`] = valueData ? parseFloat(dataObject?.EXPORT_VAR) : 0
+        Val[`${listModel[i]}:Ia`] = valueData ? parseFloat(dataObject?.Ia) : 0
+        Val[`${listModel[i]}:Ib`] = valueData ? parseFloat(dataObject?.Ib) : 0 
+        Val[`${listModel[i]}:Ic`] = valueData ? parseFloat(dataObject?.Ic) : 0
+        Val[`${listModel[i]}:Ua`] = valueData ? parseFloat(dataObject?.Ua) : 0
+        Val[`${listModel[i]}:Ub`] = valueData ? parseFloat(dataObject?.Ub) : 0
+        Val[`${listModel[i]}:Uc`] = valueData ? parseFloat(dataObject?.Uc) : 0
+        Val[`${listModel[i]}:Cosphi`] = valueData ? parseFloat(dataObject?.Cosphi) : 0
+        Val[`${listModel[i]}:NGAYGIO`] = valueData ?  dataObject?.NGAYGIO : " "
     }
     const data = {
         "d": {
