@@ -30,12 +30,12 @@ let data = {}
 const callAPI = async () => {
     let startOfDate = moment().startOf('day').format("YYYY-MM-DD HH:mm:ss")
     let params = {
-        sNoList : 20698013,
-        sTime : startOfDate
+        sNoList: 20698013,
+        sTime: startOfDate
     }
-    const response = await axios.get('http://14.225.244.63:8083/VendingInterface.asmx/SUNGRP_getInstant', {params})
+    const response = await axios.get('http://14.225.244.63:8083/VendingInterface.asmx/SUNGRP_getInstant', { params })
     let xmlData = response.data
-    let jsonData=xmlParser.toJson(xmlData)
+    let jsonData = xmlParser.toJson(xmlData)
 
     const valueData = JSON.parse(jsonData).DataTable['diffgr:diffgram'].DocumentElement.dtResult
     const lastIndex = valueData.length
@@ -56,7 +56,7 @@ const callAPI = async () => {
         Cosphi: parseFloat(lastData.Cosphi),
         ngayGio: lastData.NGAYGIO
     }
-   return dataJson
+    return dataJson
 }
 
 client.on("connect", ack => {
@@ -71,183 +71,215 @@ client.on("connect", ack => {
                 "PID": 1,
                 "BID": 0,
                 "UTg": {
-                    "MA_DIEMDO": {
+                    "20698013:MA_DIEMDO": {
                         "Log": 1,
                         "SH": 1000,
                         "SL": 0,
                         "EU": "",
                         "DSF": "4.2",
                         "Alm": false,
-                        "Name": "MA_DIEMDO",
+                        "Name": "20698013:MA_DIEMDO",
                         "TID": 1,
                         "Dsc": "MA_DIEMDO",
                         "RO": 0,
                         "Ary": 1
                     },
-                    "SO_CTO": {
+                    "20698013:SO_CTO": {
                         "Log": 1,
                         "SH": 1000,
                         "SL": 0,
                         "EU": "",
                         "DSF": "4.2",
                         "Alm": false,
-                        "Name": "SO_CTO",
+                        "Name": "20698013:SO_CTO",
                         "TID": 1,
                         "Dsc": "SO_CTO",
                         "RO": 0,
                         "Ary": 1
                     },
-                    "IMPORT_KWH": {
+                    "20698013:IMPORT_KWH": {
                         "Log": 1,
                         "SH": 1000,
                         "SL": 0,
                         "EU": "",
                         "DSF": "4.2",
                         "Alm": false,
-                        "Name": "IMPORT_KWH",
+                        "Name": "20698013:IMPORT_KWH",
                         "TID": 1,
                         "Dsc": "IMPORT_KWH",
                         "RO": 0,
                         "Ary": 1
                     },
-                    "EXPORT_KWH": {
+                    "20698013:EXPORT_KWH": {
                         "Log": 1,
                         "SH": 1000,
                         "SL": 0,
                         "EU": "",
                         "DSF": "4.2",
                         "Alm": false,
-                        "Name": "EXPORT_KWH",
+                        "Name": "20698013:EXPORT_KWH",
                         "TID": 1,
                         "Dsc": "EXPORT_KWH",
                         "RO": 0,
                         "Ary": 1
                     },
-                    "IMPORT_VAR": {
+                    "20698013:IMPORT_VAR": {
                         "Log": 1,
                         "SH": 1000,
                         "SL": 0,
                         "EU": "",
                         "DSF": "4.2",
                         "Alm": false,
-                        "Name": "IMPORT_VAR",
+                        "Name": "20698013:IMPORT_VAR",
                         "TID": 1,
                         "Dsc": "IMPORT_VAR",
                         "RO": 0,
                         "Ary": 1
                     },
-                    "EXPORT_VAR": {
+                    "20698013:EXPORT_VAR": {
                         "Log": 1,
                         "SH": 1000,
                         "SL": 0,
                         "EU": "",
                         "DSF": "4.2",
                         "Alm": false,
-                        "Name": "EXPORT_VAR",
+                        "Name": "20698013:EXPORT_VAR",
                         "TID": 1,
                         "Dsc": "EXPORT_VAR",
                         "RO": 0,
                         "Ary": 1
                     },
-                    "Ia": {
+                    "20698013:Ia": {
                         "Log": 1,
                         "SH": 1000,
                         "SL": 0,
                         "EU": "",
                         "DSF": "4.2",
                         "Alm": false,
-                        "Name": "Ia",
+                        "Name": "20698013:Ia",
                         "TID": 1,
                         "Dsc": "Ia",
                         "RO": 0,
                         "Ary": 1
                     },
-                    "Ib": {
+                    "20698013:Ib": {
                         "Log": 1,
                         "SH": 1000,
                         "SL": 0,
                         "EU": "",
                         "DSF": "4.2",
                         "Alm": false,
-                        "Name": "Ib",
+                        "Name": "20698013:Ib",
                         "TID": 1,
                         "Dsc": "Ib",
                         "RO": 0,
                         "Ary": 1
                     },
-                    "Ic": {
+                    "20698013:Ic": {
                         "Log": 1,
                         "SH": 1000,
                         "SL": 0,
                         "EU": "",
                         "DSF": "4.2",
                         "Alm": false,
-                        "Name": "Ic",
+                        "Name": "20698013:Ic",
                         "TID": 1,
                         "Dsc": "Ic",
                         "RO": 0,
                         "Ary": 1
                     },
-                    "Ua": {
+                    "20698013:Ua": {
                         "Log": 1,
                         "SH": 1000,
                         "SL": 0,
                         "EU": "",
                         "DSF": "4.2",
                         "Alm": false,
-                        "Name": "Ua",
+                        "Name": "20698013:Ua",
                         "TID": 1,
                         "Dsc": "Ua",
                         "RO": 0,
                         "Ary": 1
                     },
-                    "Ub": {
+                    "20698013:Ub": {
                         "Log": 1,
                         "SH": 1000,
                         "SL": 0,
                         "EU": "",
                         "DSF": "4.2",
                         "Alm": false,
-                        "Name": "Ub",
+                        "Name": "20698013:Ub",
                         "TID": 1,
                         "Dsc": "Ub",
                         "RO": 0,
                         "Ary": 1
                     },
-                    "Uc": {
+                    "20698013:Uc": {
                         "Log": 1,
                         "SH": 1000,
                         "SL": 0,
                         "EU": "",
                         "DSF": "4.2",
                         "Alm": false,
-                        "Name": "Uc",
+                        "Name": "20698013:Uc",
                         "TID": 1,
                         "Dsc": "Uc",
                         "RO": 0,
                         "Ary": 1
                     },
-                    "Cosphi": {
+                    "20698013:Cosphi": {
                         "Log": 1,
                         "SH": 1000,
                         "SL": 0,
                         "EU": "",
                         "DSF": "4.2",
                         "Alm": false,
-                        "Name": "Cosphi",
+                        "Name": "20698013:Cosphi",
                         "TID": 1,
                         "Dsc": "Cosphi",
                         "RO": 0,
                         "Ary": 1
                     },
-                    "NGAYGIO": {
-                        "Name": "NGAYGIO",
+                    "20698013:NGAYGIO": {
+                        "Name": "20698013:NGAYGIO",
                         "TID": 3,
                         "Dsc": "NGAYGIO",
                         "RO": 0,
                         "Ary": 1
                     }
-                }
+                },
+                "DTg": {
+                    "MA_DIEMDO": 1,
+                    "SO_CTO": 1,
+                    "IMPORT_KWH": 1,
+                    "EXPORT_KWH": 1,
+                    "IMPORT_VAR": 1,
+                    "EXPORT_VAR": 1,
+                    "Ia": 1,
+                    "Ib": 1,
+                    "Ic": 1,
+                    "Ua": 1,
+                    "Ub": 1,
+                    "Uc": 1,
+                    "Cosphi": 1,
+                    "NGAYGIO": 1,
+                    "ATag1": 1,
+                    "ATag2": 1,
+                    "ATag3": 1,
+                    "ATag4": 1,
+                    "ATag5": 1,
+                    "DTag1": 1,
+                    "DTag2": 1,
+                    "DTag3": 1,
+                    "DTag4": 1,
+                    "DTag5": 1,
+                    "TTag1": 1,
+                    "TTag2": 1,
+                    "TTag3": 1,
+                    "TTag4": 1,
+                    "TTag5": 1,
+                },
+                "Del": 1
             }
         },
         "ts": Date.now()
@@ -255,7 +287,7 @@ client.on("connect", ack => {
     client.publish('iot-2/evt/waconn/fmt/scada_qQ2N60h1DmL', JSON.stringify(dataConn))
     console.log("success connect!")
     client.publish('iot-2/evt/wacfg/fmt/scada_qQ2N60h1DmL', JSON.stringify(dataConfig))
-    //console.log("success config tag!")
+    console.log("success config tag!")
     setInterval(async () => {
         // Call API 
         const { madiemdo, socongto, importkwh, exportkwh, importvar, exportvar, Ia, Ib, Ic, Ua, Ub, Uc, Cosphi, ngayGio } = await callAPI()
@@ -264,20 +296,20 @@ client.on("connect", ack => {
             "d": {
                 "scada_qQ2N60h1DmL": {
                     "Val": {
-                        "MA_DIEMDO": madiemdo,
-                        "SO_CTO": socongto,
-                        "IMPORT_KWH": importkwh,
-                        "EXPORT_KWH": exportkwh,
-                        "IMPORT_VAR": importvar,
-                        "EXPORT_VAR": exportvar,
-                        "Ia": Ia,
-                        "Ib": Ib,
-                        "Ic": Ic,
-                        "Ua": Ua,
-                        "Ub": Ub,
-                        "Uc": Uc,
-                        "Cosphi": Cosphi,
-                        "NGAYGIO": ngayGio
+                        "20698013:MA_DIEMDO": madiemdo,
+                        "20698013:SO_CTO": socongto,
+                        "20698013:IMPORT_KWH": importkwh,
+                        "20698013:EXPORT_KWH": exportkwh,
+                        "20698013:IMPORT_VAR": importvar,
+                        "20698013:EXPORT_VAR": exportvar,
+                        "20698013:Ia": Ia,
+                        "20698013:Ib": Ib,
+                        "20698013:Ic": Ic,
+                        "20698013:Ua": Ua,
+                        "20698013:Ub": Ub,
+                        "20698013:Uc": Uc,
+                        "20698013:Cosphi": Cosphi,
+                        "20698013:NGAYGIO": ngayGio
                     }
                 }
             },
@@ -292,12 +324,12 @@ client.on("connect", ack => {
 app.get('/', async (req, res) => {
     let startOfDate = moment().startOf('day').format("YYYY-MM-DD HH:mm:ss")
     let params = {
-        sNoList : 20698013,
-        sTime : startOfDate
+        sNoList: 20698013,
+        sTime: startOfDate
     }
-    const response = await axios.get('http://14.225.244.63:8083/VendingInterface.asmx/SUNGRP_getInstant', {params})
+    const response = await axios.get('http://14.225.244.63:8083/VendingInterface.asmx/SUNGRP_getInstant', { params })
     let xmlData = response.data
-    let jsonData=xmlParser.toJson(xmlData)
+    let jsonData = xmlParser.toJson(xmlData)
 
     const valueData = JSON.parse(jsonData).DataTable['diffgr:diffgram'].DocumentElement.dtResult
     const lastIndex = valueData.length
@@ -318,7 +350,7 @@ app.get('/', async (req, res) => {
         Cosphi: parseFloat(lastData.Cosphi),
         ngayGio: lastData.NGAYGIO
     }
-   res.send(dataJson)
+    res.send(dataJson)
 })
 
 
