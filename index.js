@@ -80,20 +80,20 @@ const callAPI = async () => {
     for (let i = 0; i < listModel.length; i++) {
         const dataObjectFilterByModel = valueData ? valueData.filter(value => value.MA_DIEMDO === listModel[i].toString()) : []
         const dataObject = dataObjectFilterByModel[dataObjectFilterByModel.length - 1]
-        Val[`${listModel[i]}:MA_DIEMDO`] = valueData ? parseFloat(dataObject?.MA_DIEMDO) : 0
-        Val[`${listModel[i]}:SO_CTO`] = valueData ? parseFloat(dataObject?.SO_CTO) : 0
-        Val[`${listModel[i]}:IMPORT_KWH`] = valueData ? parseFloat(dataObject?.IMPORT_KWH) : 0
-        Val[`${listModel[i]}:EXPORT_KWH`] = valueData ? parseFloat(dataObject?.EXPORT_KWH) : 0
-        Val[`${listModel[i]}:IMPORT_VAR`] = valueData ? parseFloat(dataObject?.IMPORT_VAR) : 0
-        Val[`${listModel[i]}:EXPORT_VAR`] = valueData ? parseFloat(dataObject?.EXPORT_VAR) : 0
-        Val[`${listModel[i]}:Ia`] = valueData ? parseFloat(dataObject?.Ia) : 0
-        Val[`${listModel[i]}:Ib`] = valueData ? parseFloat(dataObject?.Ib) : 0
-        Val[`${listModel[i]}:Ic`] = valueData ? parseFloat(dataObject?.Ic) : 0
-        Val[`${listModel[i]}:Ua`] = valueData ? parseFloat(dataObject?.Ua) : 0
-        Val[`${listModel[i]}:Ub`] = valueData ? parseFloat(dataObject?.Ub) : 0
-        Val[`${listModel[i]}:Uc`] = valueData ? parseFloat(dataObject?.Uc) : 0
-        Val[`${listModel[i]}:Cosphi`] = valueData ? parseFloat(dataObject?.Cosphi) : 0
-        Val[`${listModel[i]}:NGAYGIO`] = valueData ? dataObject?.NGAYGIO : " "
+        Val[`${listModel[i]}:MA_DIEMDO`] = valueData ? parseFloat(dataObject?.MA_DIEMDO) : null
+        Val[`${listModel[i]}:SO_CTO`] = valueData ? parseFloat(dataObject?.SO_CTO) : null
+        Val[`${listModel[i]}:IMPORT_KWH`] = valueData ? parseFloat(dataObject?.IMPORT_KWH) : null
+        Val[`${listModel[i]}:EXPORT_KWH`] = valueData ? parseFloat(dataObject?.EXPORT_KWH) : null
+        Val[`${listModel[i]}:IMPORT_VAR`] = valueData ? parseFloat(dataObject?.IMPORT_VAR) : null
+        Val[`${listModel[i]}:EXPORT_VAR`] = valueData ? parseFloat(dataObject?.EXPORT_VAR) : null
+        Val[`${listModel[i]}:Ia`] = valueData ? parseFloat(dataObject?.Ia) : null
+        Val[`${listModel[i]}:Ib`] = valueData ? parseFloat(dataObject?.Ib) : null
+        Val[`${listModel[i]}:Ic`] = valueData ? parseFloat(dataObject?.Ic) : null
+        Val[`${listModel[i]}:Ua`] = valueData ? parseFloat(dataObject?.Ua) : null
+        Val[`${listModel[i]}:Ub`] = valueData ? parseFloat(dataObject?.Ub) : null
+        Val[`${listModel[i]}:Uc`] = valueData ? parseFloat(dataObject?.Uc) : null
+        Val[`${listModel[i]}:Cosphi`] = valueData ? parseFloat(dataObject?.Cosphi) : null
+        Val[`${listModel[i]}:NGAYGIO`] = valueData ? dataObject?.NGAYGIO : null
     }
     d[`${groupId}`] = {
         "Val": Val
@@ -359,20 +359,20 @@ app.get('/data', async (req, res) => {
     for (let i = 0; i < listModel.length; i++) {
         const dataObjectFilterByModel = valueData ? valueData.filter(value => value.MA_DIEMDO === listModel[i].toString()) : []
         const dataObject = dataObjectFilterByModel[dataObjectFilterByModel.length - 1]
-        Val[`${listModel[i]}:MA_DIEMDO`] = valueData ? parseFloat(dataObject?.MA_DIEMDO) : 0
-        Val[`${listModel[i]}:SO_CTO`] = valueData ? parseFloat(dataObject?.SO_CTO) : 0
-        Val[`${listModel[i]}:IMPORT_KWH`] = valueData ? parseFloat(dataObject?.IMPORT_KWH) : 0
-        Val[`${listModel[i]}:EXPORT_KWH`] = valueData ? parseFloat(dataObject?.EXPORT_KWH) : 0
-        Val[`${listModel[i]}:IMPORT_VAR`] = valueData ? parseFloat(dataObject?.IMPORT_VAR) : 0
-        Val[`${listModel[i]}:EXPORT_VAR`] = valueData ? parseFloat(dataObject?.EXPORT_VAR) : 0
-        Val[`${listModel[i]}:Ia`] = valueData ? parseFloat(dataObject?.Ia) : 0
-        Val[`${listModel[i]}:Ib`] = valueData ? parseFloat(dataObject?.Ib) : 0
-        Val[`${listModel[i]}:Ic`] = valueData ? parseFloat(dataObject?.Ic) : 0
-        Val[`${listModel[i]}:Ua`] = valueData ? parseFloat(dataObject?.Ua) : 0
-        Val[`${listModel[i]}:Ub`] = valueData ? parseFloat(dataObject?.Ub) : 0
-        Val[`${listModel[i]}:Uc`] = valueData ? parseFloat(dataObject?.Uc) : 0
-        Val[`${listModel[i]}:Cosphi`] = valueData ? parseFloat(dataObject?.Cosphi) : 0
-        Val[`${listModel[i]}:NGAYGIO`] = valueData ? dataObject?.NGAYGIO : " "
+        Val[`${listModel[i]}:MA_DIEMDO`] = valueData ? parseFloat(dataObject?.MA_DIEMDO) : null
+        Val[`${listModel[i]}:SO_CTO`] = valueData ? parseFloat(dataObject?.SO_CTO) : null
+        Val[`${listModel[i]}:IMPORT_KWH`] = valueData ? parseFloat(dataObject?.IMPORT_KWH) : null
+        Val[`${listModel[i]}:EXPORT_KWH`] = valueData ? parseFloat(dataObject?.EXPORT_KWH) : null
+        Val[`${listModel[i]}:IMPORT_VAR`] = valueData ? parseFloat(dataObject?.IMPORT_VAR) : null
+        Val[`${listModel[i]}:EXPORT_VAR`] = valueData ? parseFloat(dataObject?.EXPORT_VAR) : null
+        Val[`${listModel[i]}:Ia`] = valueData ? parseFloat(dataObject?.Ia) : null
+        Val[`${listModel[i]}:Ib`] = valueData ? parseFloat(dataObject?.Ib) : null
+        Val[`${listModel[i]}:Ic`] = valueData ? parseFloat(dataObject?.Ic) : null
+        Val[`${listModel[i]}:Ua`] = valueData ? parseFloat(dataObject?.Ua) : null
+        Val[`${listModel[i]}:Ub`] = valueData ? parseFloat(dataObject?.Ub) : null
+        Val[`${listModel[i]}:Uc`] = valueData ? parseFloat(dataObject?.Uc) : null
+        Val[`${listModel[i]}:Cosphi`] = valueData ? parseFloat(dataObject?.Cosphi) : null
+        Val[`${listModel[i]}:NGAYGIO`] = valueData ? dataObject?.NGAYGIO : null
     }
     const data = {
         "d": {
