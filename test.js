@@ -63,7 +63,7 @@ const newUser = {
   
   //run();
   const readDat = async() => {
-    const users = await read({ table: "users" });
+    const users = await read({ table: "Metter" });
     // Print to the console.
     console.log(users);
   }
