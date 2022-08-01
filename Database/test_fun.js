@@ -114,13 +114,13 @@ client.on("connect", ack => {
         const dataConfig = updateTag()
         client.publish(mqttTopicConn, JSON.stringify(dataConn))
         console.log(" Connect success!")
-        client.publish(mqttTopicCfg, JSON.stringify(dataConfig))
-        console.log(" Config tag success!")
-        setInterval(async () => {
-            const data = await callAPI()
-            client.publish(mqttTopicSendata, JSON.stringify(data))
-            console.log("Send Data")
-        }, 2 * 60 * 1000)
+        // client.publish(mqttTopicCfg, JSON.stringify(dataConfig))
+        // console.log(" Config tag success!")
+        // setInterval(async () => {
+        //     const data = await callAPI()
+        //     client.publish(mqttTopicSendata, JSON.stringify(data))
+        //     console.log("Send Data")
+        // }, 2 * 60 * 1000)
     } catch (error) {
         console.log(error)
     }
@@ -139,6 +139,205 @@ const connectJson = () => {
 
 
 const updateTag = () => {
+    let d = {}
+    const listModel = [20698013, 20697912, 20697917, 20697923, 20697924, 20697927, 20697996, 20697875, 20697666, 20697578, 20697586, 20697594]
+    let Utg = {}
+    for (let i = 0; i < listModel.length; i++) {
+        Utg[`${listModel[i]}:MA_DIEMDO`] = {
+            "Log": 1,
+            "SH": 1000,
+            "SL": 0,
+            "EU": "",
+            "DSF": "4.2",
+            "Alm": false,
+            "Name": `${listModel[i]}:MA_DIEMDO`,
+            "TID": 1,
+            "Dsc": "MA_DIEMDO",
+            "RO": 0,
+            "Ary": 1
+        }
+        Utg[`${listModel[i]}:SO_CTO`] = {
+            "Log": 1,
+            "SH": 1000,
+            "SL": 0,
+            "EU": "",
+            "DSF": "4.2",
+            "Alm": false,
+            "Name": `${listModel[i]}:SO_CTO`,
+            "TID": 1,
+            "Dsc": "SO_CTO",
+            "RO": 0,
+            "Ary": 1
+        }
+        Utg[`${listModel[i]}:IMPORT_KWH`] = {
+            "Log": 1,
+            "SH": 1000,
+            "SL": 0,
+            "EU": "",
+            "DSF": "4.2",
+            "Alm": false,
+            "Name": `${listModel[i]}:IMPORT_KWH`,
+            "TID": 1,
+            "Dsc": "IMPORT_KWH",
+            "RO": 0,
+            "Ary": 1
+        }
+        Utg[`${listModel[i]}:EXPORT_KWH`] = {
+            "Log": 1,
+            "SH": 1000,
+            "SL": 0,
+            "EU": "",
+            "DSF": "4.2",
+            "Alm": false,
+            "Name": `${listModel[i]}:EXPORT_KWH`,
+            "TID": 1,
+            "Dsc": "EXPORT_KWH",
+            "RO": 0,
+            "Ary": 1
+        }
+        Utg[`${listModel[i]}:IMPORT_VAR`] = {
+            "Log": 1,
+            "SH": 1000,
+            "SL": 0,
+            "EU": "",
+            "DSF": "4.2",
+            "Alm": false,
+            "Name": `${listModel[i]}:IMPORT_VAR`,
+            "TID": 1,
+            "Dsc": "IMPORT_VAR",
+            "RO": 0,
+            "Ary": 1
+        }
+        Utg[`${listModel[i]}:EXPORT_VAR`] = {
+            "Log": 1,
+            "SH": 1000,
+            "SL": 0,
+            "EU": "",
+            "DSF": "4.2",
+            "Alm": false,
+            "Name": `${listModel[i]}:EXPORT_VAR`,
+            "TID": 1,
+            "Dsc": "EXPORT_VAR",
+            "RO": 0,
+            "Ary": 1
+        }
+        Utg[`${listModel[i]}:Ia`] = {
+            "Log": 1,
+            "SH": 1000,
+            "SL": 0,
+            "EU": "",
+            "DSF": "4.2",
+            "Alm": false,
+            "Name": `${listModel[i]}:Ia`,
+            "TID": 1,
+            "Dsc": "Ia",
+            "RO": 0,
+            "Ary": 1
+        }
+        Utg[`${listModel[i]}:Ib`] = {
+            "Log": 1,
+            "SH": 1000,
+            "SL": 0,
+            "EU": "",
+            "DSF": "4.2",
+            "Alm": false,
+            "Name": `${listModel[i]}:Ib`,
+            "TID": 1,
+            "Dsc": "Ib",
+            "RO": 0,
+            "Ary": 1
+        }
+        Utg[`${listModel[i]}:Ic`] = {
+            "Log": 1,
+            "SH": 1000,
+            "SL": 0,
+            "EU": "",
+            "DSF": "4.2",
+            "Alm": false,
+            "Name": `${listModel[i]}:Ic`,
+            "TID": 1,
+            "Dsc": "Ic",
+            "RO": 0,
+            "Ary": 1
+        }
+        Utg[`${listModel[i]}:Ua`] = {
+            "Log": 1,
+            "SH": 1000,
+            "SL": 0,
+            "EU": "",
+            "DSF": "4.2",
+            "Alm": false,
+            "Name": `${listModel[i]}:Ua`,
+            "TID": 1,
+            "Dsc": "Ua",
+            "RO": 0,
+            "Ary": 1
+        }
+        Utg[`${listModel[i]}:Ub`] = {
+            "Log": 1,
+            "SH": 1000,
+            "SL": 0,
+            "EU": "",
+            "DSF": "4.2",
+            "Alm": false,
+            "Name": `${listModel[i]}:Ub`,
+            "TID": 1,
+            "Dsc": "Ub",
+            "RO": 0,
+            "Ary": 1
+        }
+        Utg[`${listModel[i]}:Uc`] = {
+            "Log": 1,
+            "SH": 1000,
+            "SL": 0,
+            "EU": "",
+            "DSF": "4.2",
+            "Alm": false,
+            "Name": `${listModel[i]}:Uc`,
+            "TID": 1,
+            "Dsc": "Uc",
+            "RO": 0,
+            "Ary": 1
+        }
+        Utg[`${listModel[i]}:Cosphi`] = {
+            "Log": 1,
+            "SH": 1000,
+            "SL": 0,
+            "EU": "",
+            "DSF": "4.2",
+            "Alm": false,
+            "Name": `${listModel[i]}:Cosphi`,
+            "TID": 1,
+            "Dsc": "Cosphi",
+            "RO": 0,
+            "Ary": 1
+        }
+        Utg[`${listModel[i]}:NGAYGIO`] = {
+            "Name": `${listModel[i]}:NGAYGIO`,
+            "TID": 3,
+            "Dsc": "NGAYGIO",
+            "RO": 0,
+            "Ary": 1
+        }
+
+        //UpdateTagList.push(UpdateTag)
+    }
+    d[`${groupId}`] = {
+        "TID": 1,
+        "Dsc": "descrp",
+        "Hbt": 60,
+        "PID": 1,
+        "BID": 0,
+        "UTg": Utg
+    }
+    const dataConfig = {
+        "d": d,
+        "ts": Date.now()
+    }
+    return dataConfig
+}
+
+const deleteTag = () => {
     let d = {}
     const listModel = [20698013, 20697912, 20697917, 20697923, 20697924, 20697927, 20697996, 20697875, 20697666, 20697578, 20697586, 20697594]
     let Utg = {}
