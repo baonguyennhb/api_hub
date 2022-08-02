@@ -14,7 +14,7 @@ const mqtt = require('mqtt');
 
 // Variable
 
-const groupId = 'scada_UzVa32VanG4I	'
+const groupId = 'scada_UzVa32VanG4I'
 const mqttUrl = "mqtt://10.129.167.251:1883"
 const mqttTopicConn = `iot-2/evt/waconn/fmt/${groupId}`
 const mqttTopicCfg = `iot-2/evt/wacfg/fmt/${groupId}`
@@ -85,10 +85,10 @@ client.on("connect", ack => {
         // client.publish(mqttTopicCfg, JSON.stringify(dataConfig))
         // console.log(" Config tag success!")
         // setInterval(async () => {
-        //     const data = await callAPI()
-        //     client.publish(mqttTopicSendata, JSON.stringify(data))
+        //     //const data = await callAPI()
+        client.publish(mqttTopicCfg, JSON.stringify(deleteTag()))
         //     console.log("Send Data")
-        // }, 2 * 60 * 1000)
+        // }, 10 * 1000)
     } catch (error) {
         console.log(error)
     }
@@ -308,22 +308,22 @@ const updateTag = () => {
 const deleteTag = () => {
     let d = {}
     const listModel = [20698013, 20697912, 20697917, 20697923, 20697924, 20697927, 20697996, 20697875, 20697666, 20697578, 20697586, 20697594]
-    let Dtg = {}
+    let DTg = {}
     for (let i = 0; i < listModel.length; i++) {
-        Dtg[`${listModel[i]}:MA_DIEMDO`] = 1
-        Dtg[`${listModel[i]}:SO_CTO`] = 1
-        Dtg[`${listModel[i]}:IMPORT_KWH`] = 1
-        Dtg[`${listModel[i]}:EXPORT_KWH`] = 1
-        Dtg[`${listModel[i]}:IMPORT_VAR`] = 1
-        Dtg[`${listModel[i]}:EXPORT_VAR`] = 1
-        Dtg[`${listModel[i]}:Ia`] = 1
-        Dtg[`${listModel[i]}:Ib`] = 1
-        Dtg[`${listModel[i]}:Ic`] = 1
-        Dtg[`${listModel[i]}:Ua`] = 1
-        Dtg[`${listModel[i]}:Ub`] = 1
-        Dtg[`${listModel[i]}:Uc`] = 1
-        Dtg[`${listModel[i]}:Cosphi`] = 1
-        Dtg[`${listModel[i]}:NGAYGIO`] = 1
+        DTg[`${listModel[i]}:MA_DIEMDO`] = 1
+        DTg[`${listModel[i]}:SO_CTO`] = 1
+        DTg[`${listModel[i]}:IMPORT_KWH`] = 1
+        DTg[`${listModel[i]}:EXPORT_KWH`] = 1
+        DTg[`${listModel[i]}:IMPORT_VAR`] = 1
+        DTg[`${listModel[i]}:EXPORT_VAR`] = 1
+        DTg[`${listModel[i]}:Ia`] = 1
+        DTg[`${listModel[i]}:Ib`] = 1
+        DTg[`${listModel[i]}:Ic`] = 1
+        DTg[`${listModel[i]}:Ua`] = 1
+        DTg[`${listModel[i]}:Ub`] = 1
+        DTg[`${listModel[i]}:Uc`] = 1
+        DTg[`${listModel[i]}:Cosphi`] = 1
+        DTg[`${listModel[i]}:NGAYGIO`] = 1
         //UpdateTagList.push(UpdateTag)
     }
     d[`${groupId}`] = {
@@ -332,7 +332,23 @@ const deleteTag = () => {
         "Hbt": 60,
         "PID": 1,
         "BID": 0,
-        "Dtg": Dtg
+        "DTg": {
+            "20698013:MA_DIEMDO": 1,
+            "20698013:SO_CTO": 1,
+            "20698013:IMPORT_KWH": 1,
+            "20698013:EXPORT_KWH": 1,
+            "20698013:IMPORT_VAR": 1,
+            "20698013:EXPORT_VAR": 1,
+            "20698013:Ia": 1,
+            "20698013:Ib": 1,
+            "20698013:Ic": 1,
+            "20698013:Ua": 1,
+            "20698013:Ub": 1,
+            "20698013:Uc": 1,
+            "20698013:Cosphi": 1,
+            "20698013:NGAYGIO": 1,
+        },
+        "Del": 1
     }
     const dataConfig = {
         "d": d,
@@ -391,7 +407,7 @@ app.get('/data', async (req, res) => {
 
 app.get('/data/yesterday', async (req, res) => {
     let d = {}
-    let startOfDate = moment().startOf('day').add(-1,'day').format("YYYY-MM-DD HH:mm:ss")
+    let startOfDate = moment().startOf('day').add(-1, 'day').format("YYYY-MM-DD HH:mm:ss")
     let params = {
         sNoList: "20698013,20697912,20697917,20697923,20697924,20697927,20697996,20697875,20697666,20697578,20697586,20697594",
         sTime: startOfDate
@@ -431,20 +447,81 @@ app.get('/data/yesterday', async (req, res) => {
     res.send(data)
 })
 
-app.get('/delete', (req, res) => {
+app.get('/delete', async (req, res) => {
     try {
         const deleteTagJson = deleteTag()
-        client.publish(mqttTopicCfg, JSON.stringify(deleteTagJson))
-        res.send({ message: "Delete Sucessfully!", data: deleteTagJson})
+        await client.publish(mqttTopicCfg, JSON.stringify(deleteTagJson))
+        res.send({ message: "Delete Sucessfully!", data: deleteTagJson })
     } catch (error) {
         console.log(error)
     }
 })
 app.get('/update', (req, res) => {
     try {
-        const tagConfig = updateTag()
-        client.publish(mqttTopicCfg, JSON.stringify(tagConfig))
-        res.status({ message: "Config Tag Sucessfully!", data: tagConfig })
+        const dataConfig = {
+            "d": {
+                "scada_UzVa32VanG4I": {
+                    "TID": 1,
+                    "Dsc": "descrp",
+                    "Hbt": 60,
+                    "PID": 1,
+                    "BID": 0,
+                    "UTg": {
+                        "TEST": {
+                            "Log": 1,
+                            "SH": 1000,
+                            "SL": 0,
+                            "EU": "",
+                            "DSF": "4.2",
+                            "Alm": false,
+                            "Name": "TEST",
+                            "TID": 1,
+                            "Dsc": "TEST",
+                            "RO": 0,
+                            "Ary": 1
+                        },
+                    },
+                    // "DTg": {
+                    //     "MA_DIEMDO": 1,
+                    //     "SO_CTO": 1,
+                    //     "IMPORT_KWH": 1,
+                    //     "EXPORT_KWH": 1,
+                    //     "IMPORT_VAR": 1,
+                    //     "EXPORT_VAR": 1,
+                    //     "Ia": 1,
+                    //     "Ib": 1,
+                    //     "Ic": 1,
+                    //     "Ua": 1,
+                    //     "Ub": 1,
+                    //     "Uc": 1,
+                    //     "Cosphi": 1,
+                    //     "NGAYGIO": 1,
+                    //     "ATag1": 1,
+                    //     "ATag2": 1,
+                    //     "ATag3": 1,
+                    //     "ATag4": 1,
+                    //     "ATag5": 1,
+                    //     "DTag1": 1,
+                    //     "DTag2": 1,
+                    //     "DTag3": 1,
+                    //     "DTag4": 1,
+                    //     "DTag5": 1,
+                    //     "TTag1": 1,
+                    //     "TTag2": 1,
+                    //     "TTag3": 1,
+                    //     "TTag4": 1,
+                    //     "TTag5": 1,
+                    // },
+                    // "Del": 1
+                }
+            },
+            "ts": Date.now()
+        }
+        //client.publish('iot-2/evt/waconn/fmt/scada_UzVa32VanG4I', JSON.stringify(dataConn))
+        console.log("success connect!")
+        client.publish('iot-2/evt/wacfg/fmt/scada_UzVa32VanG4I', JSON.stringify(dataConfig))
+        console.log("success config tag!")
+        res.status({ message: "Config Tag Sucessfully!", data: dataConfig })
     } catch (error) {
         console.log(error)
     }
