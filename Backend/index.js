@@ -1,4 +1,5 @@
 const express = require('express')
+const group = require('express-group-routes')
 const axios = require('axios').default;
 let xmlParser = require('xml2json');
 const moment = require('moment')
@@ -433,5 +434,11 @@ app.get('/delete', (req, res) => {
     } catch (error) {
         console.log(error)
     }
+})
+const deviceRouter = require('./Routes/device.route')
+const tagRouter = require('./Routes/tag.route')
+app.group('/api/v1', (router) => {
+    router.use('/device', deviceRouter)
+    router.use('/tag', tagRouter)
 })
 

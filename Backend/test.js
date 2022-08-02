@@ -1,14 +1,18 @@
-const sqlite3 = require("sqlite3").verbose()
-const path = require("path");
-const { promisify } = require("util");
+// const sqlite3 = require("sqlite3").verbose()
+// const path = require("path");
+// const { promisify } = require("util");
 
-// Create a new database named mydb.sqlite in the root of this project.
-const dbFilePath = path.join(__dirname, "Database/api_hub.db");
-const db = new sqlite3.Database(dbFilePath);
+// // Create a new database named mydb.sqlite in the root of this project.
+// const dbFilePath = path.join(__dirname, "Database/api_hub.db");
+// const db = new sqlite3.Database(dbFilePath);
 
-// Use the promise pattern for SQLite so we don't end up in callback hell.
-const query = promisify(db.all).bind(db);
+// // Use the promise pattern for SQLite so we don't end up in callback hell.
+// const query = promisify(db.all).bind(db);
 // SQL query for creating a users table if it doesn't already exist.
+
+const common = require('./Common/query')
+const query = common.query
+
 const createTableQuery = `
   CREATE TABLE IF NOT EXISTS users (
     "id" INTEGER PRIMARY KEY,
@@ -41,7 +45,7 @@ const newUser = {
   /**
    * Read all records and all their columns from some given table.
    */
-  const read = async ({ table }) => {
+  const read = async ({ table, params }) => {
     const res = await query(`SELECT * FROM ${table}`);
     return res;
   };

@@ -19,6 +19,7 @@ const mqttUrl = "mqtt://10.129.167.251:1883"
 const mqttTopicConn = `iot-2/evt/waconn/fmt/${groupId}`
 const mqttTopicCfg = `iot-2/evt/wacfg/fmt/${groupId}`
 const mqttTopicSendata = `iot-2/evt/wadata/fmt/${groupId}`
+const HbtInterval = 5000
 
 var options = {
     port: 1883,
@@ -80,21 +81,32 @@ client.on("connect", ack => {
         console.log("MQTT Client Connected!")
         const dataConn = connectJson()
         const dataConfig = updateTag()
-        client.publish(mqttTopicConn, JSON.stringify(dataConn))
+        client.publish(mqttTopicConn, JSON.stringify(dataConn), {qos: 1, retain: true})
         console.log(" Connect success!")
-        // client.publish(mqttTopicCfg, JSON.stringify(dataConfig))
-        // console.log(" Config tag success!")
-        // setInterval(async () => {
-        //     //const data = await callAPI()
-        client.publish(mqttTopicCfg, JSON.stringify(deleteTag()))
-        //     console.log("Send Data")
-        // }, 10 * 1000)
+        setInterval( sendHeartBeatMessage, HbtInterval)
+        // Send Data
+        client.publish(mqttTopicCfg, JSON.stringify(dataConfig))
+        console.log(" Config tag success!")
+        setInterval( async () => {
+        const data = await callAPI()
+        client.publish(mqttTopicSendata, JSON.stringify(data), {qos: 1, retain: true})
+            console.log("Send Data")
+        }, 30 * 1000)
     } catch (error) {
         console.log(error)
     }
 
 })
-
+const sendHeartBeatMessage = () => {
+    let d = {}
+    d[`${groupId}`] = { "Hbt": 1}
+    const dataHeartBeat = {
+        "d": d,
+        "ts": Date.now()
+    }
+    const topic = mqttTopicConn
+    client.publish(topic, JSON.stringify(dataHeartBeat), { qos: 1, retain: true });
+  }
 const connectJson = () => {
     let d = {}
     d[`${groupId}`] = { "Con": 1 }
@@ -305,49 +317,53 @@ const updateTag = () => {
     return dataConfig
 }
 
-const deleteTag = () => {
+const deleteTag = (tag) => {
     let d = {}
     const listModel = [20698013, 20697912, 20697917, 20697923, 20697924, 20697927, 20697996, 20697875, 20697666, 20697578, 20697586, 20697594]
     let DTg = {}
-    for (let i = 0; i < listModel.length; i++) {
-        DTg[`${listModel[i]}:MA_DIEMDO`] = 1
-        DTg[`${listModel[i]}:SO_CTO`] = 1
-        DTg[`${listModel[i]}:IMPORT_KWH`] = 1
-        DTg[`${listModel[i]}:EXPORT_KWH`] = 1
-        DTg[`${listModel[i]}:IMPORT_VAR`] = 1
-        DTg[`${listModel[i]}:EXPORT_VAR`] = 1
-        DTg[`${listModel[i]}:Ia`] = 1
-        DTg[`${listModel[i]}:Ib`] = 1
-        DTg[`${listModel[i]}:Ic`] = 1
-        DTg[`${listModel[i]}:Ua`] = 1
-        DTg[`${listModel[i]}:Ub`] = 1
-        DTg[`${listModel[i]}:Uc`] = 1
-        DTg[`${listModel[i]}:Cosphi`] = 1
-        DTg[`${listModel[i]}:NGAYGIO`] = 1
-        //UpdateTagList.push(UpdateTag)
-    }
+    DTg[`${tag}`] = 1
     d[`${groupId}`] = {
         "TID": 1,
         "Dsc": "descrp",
         "Hbt": 60,
         "PID": 1,
         "BID": 0,
-        "DTg": {
-            "20698013:MA_DIEMDO": 1,
-            "20698013:SO_CTO": 1,
-            "20698013:IMPORT_KWH": 1,
-            "20698013:EXPORT_KWH": 1,
-            "20698013:IMPORT_VAR": 1,
-            "20698013:EXPORT_VAR": 1,
-            "20698013:Ia": 1,
-            "20698013:Ib": 1,
-            "20698013:Ic": 1,
-            "20698013:Ua": 1,
-            "20698013:Ub": 1,
-            "20698013:Uc": 1,
-            "20698013:Cosphi": 1,
-            "20698013:NGAYGIO": 1,
-        },
+        "DTg": DTg,
+        "Del": 1
+    }
+    const dataConfig = {
+        "d": d,
+        "ts": Date.now()
+    }
+    return dataConfig
+}
+
+const deleteDevice = (serial) => {
+    let d = {}
+    const listModel = [20698013, 20697912, 20697917, 20697923, 20697924, 20697927, 20697996, 20697875, 20697666, 20697578, 20697586, 20697594]
+    let DTg = {}
+    DTg[`${serial}:MA_DIEMDO`] = 1
+    DTg[`${serial}:SO_CTO`] = 1
+    DTg[`${serial}:IMPORT_KWH`] = 1
+    DTg[`${serial}:EXPORT_KWH`] = 1
+    DTg[`${serial}:IMPORT_VAR`] = 1
+    DTg[`${serial}:EXPORT_VAR`] = 1
+    DTg[`${serial}:Ia`] = 1
+    DTg[`${serial}:Ib`] = 1
+    DTg[`${serial}:Ic`] = 1
+    DTg[`${serial}:Ua`] = 1
+    DTg[`${serial}:Ub`] = 1
+    DTg[`${serial}:Uc`] = 1
+    DTg[`${serial}:Cosphi`] = 1
+    DTg[`${serial}:NGAYGIO`] = 1
+
+    d[`${groupId}`] = {
+        "TID": 1,
+        "Dsc": "descrp",
+        "Hbt": 60,
+        "PID": 1,
+        "BID": 0,
+        "DTg": DTg,
         "Del": 1
     }
     const dataConfig = {
@@ -447,11 +463,22 @@ app.get('/data/yesterday', async (req, res) => {
     res.send(data)
 })
 
-app.get('/delete', async (req, res) => {
+app.get('/delete/:tag', async (req, res) => {
     try {
-        const deleteTagJson = deleteTag()
-        await client.publish(mqttTopicCfg, JSON.stringify(deleteTagJson))
+        const tagDelete = req.params.tag
+        const deleteTagJson = deleteTag(tagDelete)
+        await client.publish(mqttTopicCfg, JSON.stringify(deleteTagJson), {qos: 1, retain: true})
         res.send({ message: "Delete Sucessfully!", data: deleteTagJson })
+    } catch (error) {
+        console.log(error)
+    }
+})
+app.get('/delete/device/:serial', async (req, res) => {
+    try {
+        const deviceDelete = req.params.serial
+        const deleteDeviceJson = deleteDevice(deviceDelete)
+        await client.publish(mqttTopicCfg, JSON.stringify(deleteDeviceJson), {qos: 1, retain: true})
+        res.send({ message: "Delete Sucessfully!", data: deleteDeviceJson })
     } catch (error) {
         console.log(error)
     }
@@ -481,38 +508,6 @@ app.get('/update', (req, res) => {
                             "Ary": 1
                         },
                     },
-                    // "DTg": {
-                    //     "MA_DIEMDO": 1,
-                    //     "SO_CTO": 1,
-                    //     "IMPORT_KWH": 1,
-                    //     "EXPORT_KWH": 1,
-                    //     "IMPORT_VAR": 1,
-                    //     "EXPORT_VAR": 1,
-                    //     "Ia": 1,
-                    //     "Ib": 1,
-                    //     "Ic": 1,
-                    //     "Ua": 1,
-                    //     "Ub": 1,
-                    //     "Uc": 1,
-                    //     "Cosphi": 1,
-                    //     "NGAYGIO": 1,
-                    //     "ATag1": 1,
-                    //     "ATag2": 1,
-                    //     "ATag3": 1,
-                    //     "ATag4": 1,
-                    //     "ATag5": 1,
-                    //     "DTag1": 1,
-                    //     "DTag2": 1,
-                    //     "DTag3": 1,
-                    //     "DTag4": 1,
-                    //     "DTag5": 1,
-                    //     "TTag1": 1,
-                    //     "TTag2": 1,
-                    //     "TTag3": 1,
-                    //     "TTag4": 1,
-                    //     "TTag5": 1,
-                    // },
-                    // "Del": 1
                 }
             },
             "ts": Date.now()
@@ -526,4 +521,5 @@ app.get('/update', (req, res) => {
         console.log(error)
     }
 })
+
 
