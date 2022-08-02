@@ -1,0 +1,26 @@
+.box-container {
+    width: 100%;
+    min-height: 300px;
+    background-color: white;
+}
+.box-container .title-plant-header {
+    padding: 15px 25px ;
+    font-size: 14px;
+    font-weight: 550;
+}
+.box-container .title-plant {
+    
+    color: black;
+    font-size: 14px;
+    font-weight: 500;
+}
+.box-container .icon {
+    
+    color: green;
+    font-size: 20px;
+    margin-left: 10px;
+
+}
+.column_plant {
+    display: flex;
+}

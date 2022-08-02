@@ -1,0 +1,25 @@
+.btn-create {
+    margin-bottom: 10px;
+    padding: 0px 20px !important;
+    background-color: #73d13d;
+    color: aliceblue;
+    font-size: 20px;
+}
+.btn-create:hover {
+    background-color: #73d13d;
+}
+.container-table {
+    background: white;
+    padding: 10px 10px;
+}
+.container-table
+.ant-table-thead>tr>th {
+    padding: 7px;
+    color: rgb(0, 0, 0);
+    font-size: 14px;
+    font-weight: bold;
+}
+.container-table
+.ant-table-tbody>tr>td {
+    padding: 10px;
+}

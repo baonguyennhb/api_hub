@@ -1,0 +1,30 @@
+.header {
+    background: orange;
+    padding: 10px 30px;
+}
+
+.btn-toggle1 {
+    font-size: 18px;
+    color: white;
+    width: 50px;
+}
+
+.side-menu {
+    background: white;
+}
+
+.menu-account{
+    width: 200px;
+    bottom: 12px;
+    left: 0;
+}
+.menu-account 
+.sub-collapsed{
+    text-align: center;
+
+}
+.menu-account
+.sub-collapsed
+.ant-menu-item-group-title{
+    display: none;
+}
