@@ -439,6 +439,7 @@ app.get('/delete', (req, res) => {
 const deviceRouter = require('./Routes/device.route')
 const tagRouter = require('./Routes/tag.route')
 const userRouter = require('./Routes/user.route')
+
 app.group('/api/v1', (router) => {
     router.use('/user', userRouter)
     router.use('/device', deviceRouter)
