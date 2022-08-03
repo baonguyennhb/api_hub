@@ -1,1 +1,0 @@
-export {default as AntFormItem} from './Component'

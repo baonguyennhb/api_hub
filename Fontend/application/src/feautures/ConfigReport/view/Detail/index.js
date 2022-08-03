@@ -1,1 +1,0 @@
-export { default as ConfigReport} from './Container'
