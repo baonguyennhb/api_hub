@@ -4,10 +4,14 @@ var cors = require('cors')
 const axios = require('axios').default;
 let xmlParser = require('xml2json');
 const moment = require('moment')
+var bodyParser = require('body-parser')
+
 const port = 4000
 
 const app = express()
 app.use(cors())
+app.use(bodyParser.json()) // for parsing application/json
+app.use(bodyParser.urlencoded({ extended: true })) // for parsing application/x-www-form-urlencoded
 app.listen(port, () => {
     console.log(`Server is running on port ${port}`)
 })
@@ -120,7 +124,7 @@ client.on("connect", ack => {
         console.log(" Config tag success!")
         setInterval(async () => {
             const data = await callAPI()
-            client.publish(mqttTopicSendata, JSON.stringify(data))
+            //client.publish(mqttTopicSendata, JSON.stringify(data))
             console.log("Send Data")
         }, 2 * 60 * 1000)
     } catch (error) {
@@ -438,11 +442,13 @@ app.get('/delete', (req, res) => {
 })
 const deviceRouter = require('./Routes/device.route')
 const tagRouter = require('./Routes/tag.route')
+const deviceTagRouter = require('./Routes/device_tag.route')
 const userRouter = require('./Routes/user.route')
 
 app.group('/api/v1', (router) => {
     router.use('/user', userRouter)
     router.use('/device', deviceRouter)
     router.use('/tag', tagRouter)
+    router.use('/device_tag', deviceTagRouter)
 })
 
