@@ -4,10 +4,14 @@ var cors = require('cors')
 const axios = require('axios').default;
 let xmlParser = require('xml2json');
 const moment = require('moment')
+var bodyParser = require('body-parser')
+
 const port = 4000
 
 const app = express()
 app.use(cors())
+app.use(bodyParser.json()) // for parsing application/json
+app.use(bodyParser.urlencoded({ extended: true })) // for parsing application/x-www-form-urlencoded
 app.listen(port, () => {
     console.log(`Server is running on port ${port}`)
 })
@@ -21,6 +25,7 @@ const mqttUrl = "mqtt://rabbitmq-001-pub.hz.wise-paas.com.cn:1883"
 const mqttTopicConn = `iot-2/evt/waconn/fmt/${groupId}`
 const mqttTopicCfg = `iot-2/evt/wacfg/fmt/${groupId}`
 const mqttTopicSendata = `iot-2/evt/wadata/fmt/${groupId}`
+const HbtInterval = 5000
 
 var options = {
     port: 1883,
@@ -31,38 +36,6 @@ var options = {
 
 const client = mqtt.connect(mqttUrl, options);
 
-
-const callAPIOld = async () => {
-    let startOfDate = moment().startOf('day').format("YYYY-MM-DD HH:mm:ss")
-    let params = {
-        sNoList: 20698013,
-        sTime: startOfDate
-    }
-    const response = await axios.get('http://14.225.244.63:8083/VendingInterface.asmx/SUNGRP_getInstant', { params })
-    let xmlData = response.data
-    let jsonData = xmlParser.toJson(xmlData)
-
-    const valueData = JSON.parse(jsonData).DataTable['diffgr:diffgram'].DocumentElement.dtResult
-    const lastIndex = valueData.length
-    const lastData = valueData[lastIndex - 1]
-    let dataJson = {
-        madiemdo: parseFloat(lastData.MA_DIEMDO),
-        socongto: parseFloat(lastData.SO_CTO),
-        importkwh: parseFloat(lastData.IMPORT_KWH),
-        exportkwh: parseFloat(lastData.EXPORT_KWH),
-        importvar: parseFloat(lastData.IMPORT_VAR),
-        exportvar: parseFloat(lastData.EXPORT_VAR),
-        Ia: parseFloat(lastData.Ia),
-        Ib: parseFloat(lastData.Ib),
-        Ic: parseFloat(lastData.Ic),
-        Ua: parseFloat(lastData.Ua),
-        Ub: parseFloat(lastData.Ub),
-        Uc: parseFloat(lastData.Uc),
-        Cosphi: parseFloat(lastData.Cosphi),
-        ngayGio: lastData.NGAYGIO
-    }
-    return dataJson
-}
 
 // Handle Call API
 
@@ -114,21 +87,32 @@ client.on("connect", ack => {
         console.log("MQTT Client Connected!")
         const dataConn = connectJson()
         const dataConfig = updateTag()
-        client.publish(mqttTopicConn, JSON.stringify(dataConn))
+        client.publish(mqttTopicConn, JSON.stringify(dataConn), {qos: 1, retain: true})
         console.log(" Connect success!")
+        setInterval( sendHeartBeatMessage, HbtInterval)
+        // Send Data
         client.publish(mqttTopicCfg, JSON.stringify(dataConfig))
         console.log(" Config tag success!")
-        setInterval(async () => {
-            const data = await callAPI()
-            client.publish(mqttTopicSendata, JSON.stringify(data))
+        setInterval( async () => {
+        const data = await callAPI()
+        client.publish(mqttTopicSendata, JSON.stringify(data), {qos: 1, retain: true})
             console.log("Send Data")
-        }, 2 * 60 * 1000)
+        }, 30 * 1000)
     } catch (error) {
         console.log(error)
     }
 
 })
-
+const sendHeartBeatMessage = () => {
+    let d = {}
+    d[`${groupId}`] = { "Hbt": 1}
+    const dataHeartBeat = {
+        "d": d,
+        "ts": Date.now()
+    }
+    const topic = mqttTopicConn
+    client.publish(topic, JSON.stringify(dataHeartBeat), { qos: 1, retain: true });
+  }
 const connectJson = () => {
     let d = {}
     d[`${groupId}`] = { "Con": 1 }
@@ -339,6 +323,62 @@ const updateTag = () => {
     return dataConfig
 }
 
+const deleteTag = (tag) => {
+    let d = {}
+    const listModel = [20698013, 20697912, 20697917, 20697923, 20697924, 20697927, 20697996, 20697875, 20697666, 20697578, 20697586, 20697594]
+    let DTg = {}
+    DTg[`${tag}`] = 1
+    d[`${groupId}`] = {
+        "TID": 1,
+        "Dsc": "descrp",
+        "Hbt": 60,
+        "PID": 1,
+        "BID": 0,
+        "DTg": DTg,
+        "Del": 1
+    }
+    const dataConfig = {
+        "d": d,
+        "ts": Date.now()
+    }
+    return dataConfig
+}
+
+const deleteDevice = (serial) => {
+    let d = {}
+    const listModel = [20698013, 20697912, 20697917, 20697923, 20697924, 20697927, 20697996, 20697875, 20697666, 20697578, 20697586, 20697594]
+    let DTg = {}
+    DTg[`${serial}:MA_DIEMDO`] = 1
+    DTg[`${serial}:SO_CTO`] = 1
+    DTg[`${serial}:IMPORT_KWH`] = 1
+    DTg[`${serial}:EXPORT_KWH`] = 1
+    DTg[`${serial}:IMPORT_VAR`] = 1
+    DTg[`${serial}:EXPORT_VAR`] = 1
+    DTg[`${serial}:Ia`] = 1
+    DTg[`${serial}:Ib`] = 1
+    DTg[`${serial}:Ic`] = 1
+    DTg[`${serial}:Ua`] = 1
+    DTg[`${serial}:Ub`] = 1
+    DTg[`${serial}:Uc`] = 1
+    DTg[`${serial}:Cosphi`] = 1
+    DTg[`${serial}:NGAYGIO`] = 1
+
+    d[`${groupId}`] = {
+        "TID": 1,
+        "Dsc": "descrp",
+        "Hbt": 60,
+        "PID": 1,
+        "BID": 0,
+        "DTg": DTg,
+        "Del": 1
+    }
+    const dataConfig = {
+        "d": d,
+        "ts": Date.now()
+    }
+    return dataConfig
+}
+
 // API TESTING
 
 app.get('/cfg', async (req, res) => {
@@ -388,7 +428,8 @@ app.get('/data', async (req, res) => {
 })
 
 app.get('/data/yesterday', async (req, res) => {
-    let startOfDate = moment().startOf('day').add(-1,'day').format("YYYY-MM-DD HH:mm:ss")
+    let d = {}
+    let startOfDate = moment().startOf('day').add(-1, 'day').format("YYYY-MM-DD HH:mm:ss")
     let params = {
         sNoList: "20698013,20697912,20697917,20697923,20697924,20697927,20697996,20697875,20697666,20697578,20697586,20697594",
         sTime: startOfDate
@@ -417,32 +458,87 @@ app.get('/data/yesterday', async (req, res) => {
         Val[`${listModel[i]}:Cosphi`] = valueData ? parseFloat(dataObject?.Cosphi) : 0
         Val[`${listModel[i]}:NGAYGIO`] = valueData ? dataObject?.NGAYGIO : " "
     }
+    d[`${groupId}`] = {
+        "Val": Val
+    }
     const data = {
-        "d": {
-            "scada_qQ2N60h1DmL": {
-                "Val": Val
-            }
-        },
+        "d": d,
         "ts": Date.now()
     }
     client.publish(mqttTopicSendata, JSON.stringify(data))
     res.send(data)
 })
 
-app.get('/delete', (req, res) => {
+app.get('/delete/:tag', async (req, res) => {
     try {
-        
+        const tagDelete = req.params.tag
+        const deleteTagJson = deleteTag(tagDelete)
+        await client.publish(mqttTopicCfg, JSON.stringify(deleteTagJson), {qos: 1, retain: true})
+        res.send({ message: "Delete Sucessfully!", data: deleteTagJson })
     } catch (error) {
         console.log(error)
     }
 })
+app.get('/delete/device/:serial', async (req, res) => {
+    try {
+        const deviceDelete = req.params.serial
+        const deleteDeviceJson = deleteDevice(deviceDelete)
+        await client.publish(mqttTopicCfg, JSON.stringify(deleteDeviceJson), {qos: 1, retain: true})
+        res.send({ message: "Delete Sucessfully!", data: deleteDeviceJson })
+    } catch (error) {
+        console.log(error)
+    }
+})
+app.get('/update', (req, res) => {
+    try {
+        const dataConfig = {
+            "d": {
+                "scada_UzVa32VanG4I": {
+                    "TID": 1,
+                    "Dsc": "descrp",
+                    "Hbt": 60,
+                    "PID": 1,
+                    "BID": 0,
+                    "UTg": {
+                        "TEST": {
+                            "Log": 1,
+                            "SH": 1000,
+                            "SL": 0,
+                            "EU": "",
+                            "DSF": "4.2",
+                            "Alm": false,
+                            "Name": "TEST",
+                            "TID": 1,
+                            "Dsc": "TEST",
+                            "RO": 0,
+                            "Ary": 1
+                        },
+                    },
+                }
+            },
+            "ts": Date.now()
+        }
+        //client.publish('iot-2/evt/waconn/fmt/scada_UzVa32VanG4I', JSON.stringify(dataConn))
+        console.log("success connect!")
+        client.publish('iot-2/evt/wacfg/fmt/scada_UzVa32VanG4I', JSON.stringify(dataConfig))
+        console.log("success config tag!")
+        res.status({ message: "Config Tag Sucessfully!", data: dataConfig })
+    } catch (error) {
+        console.log(error)
+    }
+})
+
 const deviceRouter = require('./Routes/device.route')
 const tagRouter = require('./Routes/tag.route')
+const deviceTagRouter = require('./Routes/device_tag.route')
 const userRouter = require('./Routes/user.route')
+const apiSourceRouter = require('./Routes/apiSource.route')
 
 app.group('/api/v1', (router) => {
     router.use('/user', userRouter)
+    router.use('/api-source', apiSourceRouter)
     router.use('/device', deviceRouter)
     router.use('/tag', tagRouter)
+    router.use('/device_tag', deviceTagRouter)
 })
 
