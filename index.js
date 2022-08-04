@@ -16,8 +16,8 @@ const mqtt = require('mqtt');
 
 // Variable
 
-const groupId = 'scada_UzVa32VanG4I'
-const mqttUrl = "mqtt://10.129.167.251:1883"
+const groupId = 'scada_qQ2N60h1DmL'
+const mqttUrl = "mqtt://rabbitmq-001-pub.hz.wise-paas.com.cn:1883"
 const mqttTopicConn = `iot-2/evt/waconn/fmt/${groupId}`
 const mqttTopicCfg = `iot-2/evt/wacfg/fmt/${groupId}`
 const mqttTopicSendata = `iot-2/evt/wadata/fmt/${groupId}`
@@ -25,8 +25,8 @@ const HbtInterval = 5000
 
 var options = {
     port: 1883,
-    username: 'Bbql3pmm5weM:dgqMkW08KwQb',
-    password: 'FFchKM7La1sHs2QsRzzu',
+    username: 'Goy2waYPAGQP:n3Q78J2BBKeK',
+    password: 'CVemCimzm0duGLr6OnvJ',
 };
 // Connect MQTT Broker 
 
