@@ -1,8 +1,9 @@
 const express = require('express')
 const router = express()
-const controller =  require('../Controller/tag.controller')
+const controller =  require('../Controller/device_tag.controller')
 
 router.get('/list', controller.GetList)
+router.get('/add', controller.GetAdd)
 router.post('/add', controller.postAdd)
 router.get('/edit', controller.getEdit)
 router.post('/edit', controller.postEdit)
