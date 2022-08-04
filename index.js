@@ -124,7 +124,7 @@ client.on("connect", ack => {
         console.log(" Config tag success!")
         setInterval(async () => {
             const data = await callAPI()
-            //client.publish(mqttTopicSendata, JSON.stringify(data))
+            client.publish(mqttTopicSendata, JSON.stringify(data))
             console.log("Send Data")
         }, 2 * 60 * 1000)
     } catch (error) {
