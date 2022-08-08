@@ -20,13 +20,14 @@ module.exports.postAdd = async (req, res) => {
 
   try {
     let data = req.body
+    console.log(data)
     let sql = `INSERT INTO Metter (Serial, Model, Description, Interval) Values ( ${data.serial}, '${data.model}', '${data.description}', ${data.interval} )`
       //let sql = 'SELECT * FROM Metter'
     const devices = await query(sql)
     const dataSend = {
         code: 200,
         message: "OK",
-        data: devices
+        data: data
     }
     res.status(200).send(dataSend)
   } catch (error) {
@@ -76,6 +77,7 @@ module.exports.postEdit = async (req, res) => {
 module.exports.delDelete = async (req, res) => {
   try {
     let id = req.query.id
+    console.log(req.query)
     //let data = req.body
     //let sql = `SELECT * FROM Metter `
     let sql = `DELETE FROM Metter where id = ${id}`
