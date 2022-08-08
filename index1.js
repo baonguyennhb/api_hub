@@ -5,6 +5,10 @@ const axios = require('axios').default;
 let xmlParser = require('xml2json');
 const moment = require('moment')
 var bodyParser = require('body-parser')
+const common = require('./Common/query')
+const query = common.query
+const mqtt = require('mqtt');
+
 
 const port = 4000
 
@@ -16,10 +20,9 @@ app.listen(port, () => {
     console.log(`Server is running on port ${port}`)
 })
 
-const mqtt = require('mqtt');
+
 
 // Variable
-
 const groupId = 'scada_qQ2N60h1DmL'
 const mqttUrl = "mqtt://rabbitmq-001-pub.hz.wise-paas.com.cn:1883"
 const mqttTopicConn = `iot-2/evt/waconn/fmt/${groupId}`
@@ -50,6 +53,8 @@ const callAPI = async () => {
     let xmlData = response.data
     let jsonData = xmlParser.toJson(xmlData)
     const valueData = JSON.parse(jsonData).DataTable['diffgr:diffgram'].DocumentElement?.dtResult
+
+    //console.log(valueData)
     const listModel = [20698013, 20697912, 20697917, 20697923, 20697924, 20697927, 20697996, 20697875, 20697666, 20697578, 20697586, 20697594]
     let Val = {}
     for (let i = 0; i < listModel.length; i++) {
@@ -70,6 +75,10 @@ const callAPI = async () => {
         Val[`${listModel[i]}:Cosphi`] = valueData ? parseFloat(dataObject?.Cosphi) : null
         Val[`${listModel[i]}:NGAYGIO`] = valueData ? dataObject?.NGAYGIO : null
     }
+
+    //console.log(Val)
+
+
     d[`${groupId}`] = {
         "Val": Val
     }
@@ -88,21 +97,80 @@ client.on("connect", ack => {
         const dataConn = connectJson()
         const dataConfig = updateTag()
         client.publish(mqttTopicConn, JSON.stringify(dataConn), {qos: 1, retain: true})
-        console.log(" Connect success!")
-        setInterval( sendHeartBeatMessage, HbtInterval)
+        console.log("Connect success!")
+        setInterval(sendHeartBeatMessage, HbtInterval)
+        
         // Send Data
         client.publish(mqttTopicCfg, JSON.stringify(dataConfig))
         console.log(" Config tag success!")
-        setInterval( async () => {
-        const data = await callAPI()
-        client.publish(mqttTopicSendata, JSON.stringify(data), {qos: 1, retain: true})
-            console.log("Send Data")
-        }, 30 * 1000)
+
+
+
+
     } catch (error) {
         console.log(error)
     }
 
 })
+
+//=================================================
+// Read Metter as interval
+
+async function ReadMetter() {
+  var nextExecutionTime = await getMetterInterval();
+  console.log(moment().format('hh:mm:ss'))
+
+  //const data = await callAPI()
+  //client.publish(mqttTopicSendata, JSON.stringify(data), {qos: 1, retain: true})
+  console.log("---> Read Data OK")
+
+  setTimeout(ReadMetter, nextExecutionTime);
+}
+
+ReadMetter()
+
+async function getMetterInterval(){
+    let sql = 'SELECT * FROM DataSource'
+    const result = await query(sql)
+    //console.log(result[0].interval)
+    return result[0].interval
+}
+
+async function setMetterTagInRaw(){
+  let start = moment().startOf('day')
+  
+  let sql = `SELECT MetterTag.id as MetterTagId, * FROM MetterTag 
+              JOIN Metter on MetterTag.device_id = Metter.id 
+              JOIN Tag on MetterTag.tag_id = Tag.id
+              `
+  const metter_tags = await query(sql)
+  for (let i = 0; i < 48; i++) {
+    timestamp_str = start.format('YYYY-MM-DD HH:mm:ss')
+    await metter_tags.forEach( async e => {
+      let sql2 = `INSERT INTO RawData (timestamp, metter_tag_id, tag_name) Values ( '${timestamp_str}', ${e.MetterTagId}, '${e.serial}:${e.name}' )`
+      const result2 = await query(sql2)
+      
+    });
+    
+    start = moment(start).add(30, 'minutes')
+    console.log(metter_tags)
+  }
+
+  
+      //let sql = 'SELECT * FROM Metter'
+  
+  
+
+  
+  return 
+}
+
+setMetterTagInRaw()
+
+
+
+//============================================================
+
 const sendHeartBeatMessage = () => {
     let d = {}
     d[`${groupId}`] = { "Hbt": 1}
@@ -113,6 +181,7 @@ const sendHeartBeatMessage = () => {
     const topic = mqttTopicConn
     client.publish(topic, JSON.stringify(dataHeartBeat), { qos: 1, retain: true });
   }
+
 const connectJson = () => {
     let d = {}
     d[`${groupId}`] = { "Con": 1 }
@@ -533,7 +602,8 @@ const deviceRouter = require('./Routes/device.route')
 const tagRouter = require('./Routes/tag.route')
 const deviceTagRouter = require('./Routes/device_tag.route')
 const userRouter = require('./Routes/user.route')
-const apiSourceRouter = require('./Routes/apiSource.route')
+const apiSourceRouter = require('./Routes/apiSource.route');
+const e = require('express');
 
 app.group('/api/v1', (router) => {
     router.use('/user', userRouter)
@@ -542,4 +612,7 @@ app.group('/api/v1', (router) => {
     router.use('/tag', tagRouter)
     router.use('/device_tag', deviceTagRouter)
 })
+
+
+
 
