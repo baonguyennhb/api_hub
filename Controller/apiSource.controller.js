@@ -3,7 +3,7 @@ const query = common.query
 
 module.exports.GetList = async (req, res) => {
     try {
-        let sql = 'SELECT * FROM DataSource'
+        let sql = 'SELECT * FROM ApiSource'
         const apiSources = await query(sql)
         const dataSend = {
             code: 200,
