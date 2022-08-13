@@ -3,8 +3,10 @@ const query = common.query
 
 module.exports.GetList = async (req, res) => {
     try {
-        let sql = 'SELECT * FROM Tag'
-        const devices = await query(sql)
+      const { metterId } = req.query
+        let sql = 'SELECT * FROM Tag WHERE Metter=?'
+        let params = [metterId]
+        const devices = await query(sql, params)
         const dataSend = {
             code: 200,
             message: "OK",
@@ -20,7 +22,7 @@ module.exports.postAdd = async (req, res) => {
 
   try {
     let data = req.body
-    let sql = `INSERT INTO Tag (name) Values ( '${data.name}' )`
+    let sql = `INSERT INTO Tag (metter, name, parameter, data_type, scale) Values ( '${data.metterId}', '${data.name}', '${data.paramter}', '${data.data_type}', '${data.scale}' )`
       //let sql = 'SELECT * FROM Metter'
     const devices = await query(sql)
     const dataSend = {

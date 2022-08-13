@@ -3,7 +3,7 @@ const query = common.query
 
 module.exports.GetList = async (req, res) => {
     try {
-        let sql = 'SELECT * FROM MetterTag'
+        let sql = 'SELECT * FROM MetterTag '
         const devices = await query(sql)
         const dataSend = {
             code: 200,
