@@ -3,8 +3,10 @@ const query = common.query
 
 module.exports.GetList = async (req, res) => {
     try {
-        let sql = 'SELECT * FROM Metter'
-        const devices = await query(sql)
+        let sql = 'SELECT * FROM Metter WHERE api_source=?'
+        const  { apiSource } = req.query
+        let params = [apiSource]
+        const devices = await query(sql,params)
         const dataSend = {
             code: 200,
             message: "OK",
@@ -17,12 +19,10 @@ module.exports.GetList = async (req, res) => {
 }
 
 module.exports.postAdd = async (req, res) => {
-
   try {
     let data = req.body
     console.log(data)
-    let sql = `INSERT INTO Metter (Serial, Model, Description, Interval) Values ( ${data.serial}, '${data.model}', '${data.description}', ${data.interval} )`
-      //let sql = 'SELECT * FROM Metter'
+    let sql = `INSERT INTO Metter (api_source, serial, metter_id, description, interval, status) Values ( ${data.apiSource}, '${data.serial}' , '${data.metter_id}', '${data.description}', ${data.interval}, 1 )`
     const devices = await query(sql)
     const dataSend = {
         code: 200,
