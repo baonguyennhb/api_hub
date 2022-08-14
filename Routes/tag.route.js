@@ -7,5 +7,5 @@ router.post('/add', controller.postAdd)
 router.get('/edit', controller.getEdit)
 router.post('/edit', controller.postEdit)
 router.delete('/delete', controller.delDelete)
-
+router.get("/monitor", controller.MonitorTag)
 module.exports = router

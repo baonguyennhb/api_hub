@@ -5,6 +5,10 @@ const axios = require('axios').default;
 let xmlParser = require('xml2json');
 const moment = require('moment')
 var bodyParser = require('body-parser')
+var fsPromises = require('fs').promises;
+
+const common = require('./Common/query')
+const query = common.query
 
 const port = 4000
 
@@ -87,15 +91,15 @@ client.on("connect", ack => {
         console.log("MQTT Client Connected!")
         const dataConn = connectJson()
         const dataConfig = updateTag()
-        client.publish(mqttTopicConn, JSON.stringify(dataConn), {qos: 1, retain: true})
+        client.publish(mqttTopicConn, JSON.stringify(dataConn), { qos: 1, retain: true })
         console.log(" Connect success!")
-        setInterval( sendHeartBeatMessage, HbtInterval)
+        setInterval(sendHeartBeatMessage, HbtInterval)
         // Send Data
         client.publish(mqttTopicCfg, JSON.stringify(dataConfig))
         console.log(" Config tag success!")
-        setInterval( async () => {
-        const data = await callAPI()
-        client.publish(mqttTopicSendata, JSON.stringify(data), {qos: 1, retain: true})
+        setInterval(async () => {
+            const data = await callAPI()
+            client.publish(mqttTopicSendata, JSON.stringify(data), { qos: 1, retain: true })
             console.log("Send Data")
         }, 30 * 1000)
     } catch (error) {
@@ -105,14 +109,14 @@ client.on("connect", ack => {
 })
 const sendHeartBeatMessage = () => {
     let d = {}
-    d[`${groupId}`] = { "Hbt": 1}
+    d[`${groupId}`] = { "Hbt": 1 }
     const dataHeartBeat = {
         "d": d,
         "ts": Date.now()
     }
     const topic = mqttTopicConn
     client.publish(topic, JSON.stringify(dataHeartBeat), { qos: 1, retain: true });
-  }
+}
 const connectJson = () => {
     let d = {}
     d[`${groupId}`] = { "Con": 1 }
@@ -473,7 +477,7 @@ app.get('/delete/:tag', async (req, res) => {
     try {
         const tagDelete = req.params.tag
         const deleteTagJson = deleteTag(tagDelete)
-        await client.publish(mqttTopicCfg, JSON.stringify(deleteTagJson), {qos: 1, retain: true})
+        await client.publish(mqttTopicCfg, JSON.stringify(deleteTagJson), { qos: 1, retain: true })
         res.send({ message: "Delete Sucessfully!", data: deleteTagJson })
     } catch (error) {
         console.log(error)
@@ -484,7 +488,7 @@ app.get('/delete/device/:serial', async (req, res) => {
     try {
         const deviceDelete = req.params.serial
         const deleteDeviceJson = deleteDevice(deviceDelete)
-        await client.publish(mqttTopicCfg, JSON.stringify(deleteDeviceJson), {qos: 1, retain: true})
+        await client.publish(mqttTopicCfg, JSON.stringify(deleteDeviceJson), { qos: 1, retain: true })
         res.send({ message: "Delete Sucessfully!", data: deleteDeviceJson })
     } catch (error) {
         console.log(error)
@@ -529,6 +533,86 @@ app.get('/update', (req, res) => {
     }
 })
 
+//********** - Bao test call api with congig from db
+//=================================================
+// Read Metter as interval
+
+async function ReadMetter() {
+    try {
+        var nextExecutionTime = await getMetterInterval();
+        console.log(moment().format('hh:mm:ss'))
+
+        console.log("---> Read Data OK")
+
+        let startOfDate = moment().startOf('day').format("YYYY-MM-DD HH:mm:ss")
+        let params = {
+            sNoList: "20698013,20697912,20697917,20697923,20697924,20697927,20697996,20697875,20697666,20697578,20697586,20697594",
+            sTime: startOfDate
+        }
+        const response = await axios.get('http://14.225.244.63:8083/VendingInterface.asmx/SUNGRP_getInstant', { params })
+        let xmlData = response.data
+        let jsonData = xmlParser.toJson(xmlData)
+        const valueData = JSON.parse(jsonData).DataTable['diffgr:diffgram'].DocumentElement?.dtResult
+        const jsonObjectData = {
+            data: valueData,
+            timestamp: moment().format('YYYY-MM-DD hh:mm:ss')
+        }
+        await fsPromises.writeFile("data.json", JSON.stringify(jsonObjectData))
+        const dataRead = await fsPromises.readFile("data.json")
+        console.log(JSON.parse(dataRead).timestamp)
+        setTimeout(ReadMetter, nextExecutionTime);
+    } catch (error) {
+
+    }
+}
+
+ReadMetter()
+
+async function getMetterInterval() {
+    let sql = 'SELECT * FROM ApiSource'
+    const result = await query(sql)
+    return result[0].interval * 1000
+}
+
+async function setMetterTagInRaw() {
+    let start = moment().startOf('day')
+
+    let sql = `SELECT MetterTag.id as MetterTagId, * FROM MetterTag 
+                JOIN Metter on MetterTag.device_id = Metter.id 
+                JOIN Tag on MetterTag.tag_id = Tag.id
+                `
+    const metter_tags = await query(sql)
+    for (let i = 0; i < 48; i++) {
+        timestamp_str = start.format('YYYY-MM-DD HH:mm:ss')
+        await metter_tags.forEach(async e => {
+            let sql2 = `INSERT INTO RawData (timestamp, metter_tag_id, tag_name) Values ( '${timestamp_str}', ${e.MetterTagId}, '${e.serial}:${e.name}' )`
+            const result2 = await query(sql2)
+
+        });
+
+        start = moment(start).add(30, 'minutes')
+        console.log(metter_tags)
+    }
+
+
+    //let sql = 'SELECT * FROM Metter'
+
+
+
+
+    return
+}
+
+//setMetterTagInRaw()
+
+
+
+//============================================================
+
+
+
+
+
 const deviceRouter = require('./Routes/device.route')
 const tagRouter = require('./Routes/tag.route')
 const deviceTagRouter = require('./Routes/device_tag.route')
@@ -542,4 +626,5 @@ app.group('/api/v1', (router) => {
     router.use('/tag', tagRouter)
     router.use('/device_tag', deviceTagRouter)
 })
+
 
