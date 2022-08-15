@@ -24,7 +24,6 @@ module.exports.postAdd = async (req, res) => {
   try {
     let data = req.body
     let sql = `INSERT INTO Tag (metter_id, name, parameter, data_type, scale) Values ( '${data.metterId}', '${data.name}', '${data.paramter}', '${data.data_type}', '${data.scale}' )`
-    //let sql = 'SELECT * FROM Metter'
     const devices = await query(sql)
     const dataSend = {
       code: 200,
