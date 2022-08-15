@@ -3,5 +3,6 @@ const router = express()
 const controller =  require('../Controller/apiSource.controller')
 
 router.get('/list', controller.GetList)
+router.get('/testConnect', controller.GetTestConnect)
 
 module.exports = router
