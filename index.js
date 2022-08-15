@@ -541,10 +541,8 @@ app.get('/update', (req, res) => {
 //=================================================
 // Read Metter as interval
 
-async function ReadMetter() {
+async function CallDataFromApiSource(url) {
     try {
-        var nextExecutionTime = await getMetterInterval();
-        console.log(moment().format('hh:mm:ss'))
 
         console.log("---> Read Data OK")
 
@@ -553,10 +551,11 @@ async function ReadMetter() {
             sNoList: "20698013,20697912,20697917,20697923,20697924,20697927,20697996,20697875,20697666,20697578,20697586,20697594",
             sTime: startOfDate
         }
-        const response = await axios.get('http://14.225.244.63:8083/VendingInterface.asmx/SUNGRP_getInstant', { params })
+        const response = await axios.get(url, { params })
         let xmlData = response.data
         let jsonData = xmlParser.toJson(xmlData)
         const valueData = JSON.parse(jsonData).DataTable['diffgr:diffgram'].DocumentElement?.dtResult
+
         const jsonObjectData = {
             data: valueData,
             timestamp: moment().format('YYYY-MM-DD hh:mm:ss')
@@ -573,6 +572,8 @@ async function ReadMetter() {
 ReadMetter()
 
 async function getMetterInterval() {
+    var nextExecutionTime = await getMetterInterval();
+        console.log(moment().format('hh:mm:ss'))
     let sql = 'SELECT * FROM ApiSource'
     const result = await query(sql)
     return result[0].interval * 1000
@@ -609,12 +610,16 @@ async function setMetterTagInRaw() {
 
 //setMetterTagInRaw()
 
+async function handleCallDataFromApiSource() {
+    let sql = "SELECT * FROM ApiSource"
+    const apiList = await query(sql)
+    for (let i = 0; i < array.length; i++) {
+       CallDataFromApiSource(apiList[i].url)
+    }
 
+}
 
 //============================================================
-
-
-
 
 
 const deviceRouter = require('./Routes/device.route')
