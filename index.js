@@ -44,44 +44,48 @@ const client = mqtt.connect(mqttUrl, options);
 // Handle Call API
 
 const callAPI = async () => {
-    let d = {}
-    let startOfDate = moment().startOf('day').format("YYYY-MM-DD HH:mm:ss")
-    let params = {
-        sNoList: "20698013,20697912,20697917,20697923,20697924,20697927,20697996,20697875,20697666,20697578,20697586,20697594",
-        sTime: startOfDate
+    try {
+        let d = {}
+        let startOfDate = moment().startOf('day').format("YYYY-MM-DD HH:mm:ss")
+        let params = {
+            sNoList: "20698013,20697912,20697917,20697923,20697924,20697927,20697996,20697875,20697666,20697578,20697586,20697594",
+            sTime: startOfDate
+        }
+        const response = await axios.get('http://14.225.244.63:8083/VendingInterface.asmx/SUNGRP_getInstant', { params })
+        let xmlData = response.data
+        let jsonData = xmlParser.toJson(xmlData)
+        const valueData = JSON.parse(jsonData).DataTable['diffgr:diffgram'].DocumentElement?.dtResult
+        const listModel = [20698013, 20697912, 20697917, 20697923, 20697924, 20697927, 20697996, 20697875, 20697666, 20697578, 20697586, 20697594]
+        let Val = {}
+        for (let i = 0; i < listModel.length; i++) {
+            const dataObjectFilterByModel = valueData ? valueData.filter(value => value.MA_DIEMDO === listModel[i].toString()) : []
+            const dataObject = dataObjectFilterByModel[dataObjectFilterByModel.length - 1]
+            Val[`${listModel[i]}:MA_DIEMDO`] = valueData ? parseFloat(dataObject?.MA_DIEMDO) : null
+            Val[`${listModel[i]}:SO_CTO`] = valueData ? parseFloat(dataObject?.SO_CTO) : null
+            Val[`${listModel[i]}:IMPORT_KWH`] = valueData ? parseFloat(dataObject?.IMPORT_KWH) : null
+            Val[`${listModel[i]}:EXPORT_KWH`] = valueData ? parseFloat(dataObject?.EXPORT_KWH) : null
+            Val[`${listModel[i]}:IMPORT_VAR`] = valueData ? parseFloat(dataObject?.IMPORT_VAR) : null
+            Val[`${listModel[i]}:EXPORT_VAR`] = valueData ? parseFloat(dataObject?.EXPORT_VAR) : null
+            Val[`${listModel[i]}:Ia`] = valueData ? parseFloat(dataObject?.Ia) : null
+            Val[`${listModel[i]}:Ib`] = valueData ? parseFloat(dataObject?.Ib) : null
+            Val[`${listModel[i]}:Ic`] = valueData ? parseFloat(dataObject?.Ic) : null
+            Val[`${listModel[i]}:Ua`] = valueData ? parseFloat(dataObject?.Ua) : null
+            Val[`${listModel[i]}:Ub`] = valueData ? parseFloat(dataObject?.Ub) : null
+            Val[`${listModel[i]}:Uc`] = valueData ? parseFloat(dataObject?.Uc) : null
+            Val[`${listModel[i]}:Cosphi`] = valueData ? parseFloat(dataObject?.Cosphi) : null
+            Val[`${listModel[i]}:NGAYGIO`] = valueData ? dataObject?.NGAYGIO : null
+        }
+        d[`${groupId}`] = {
+            "Val": Val
+        }
+        const data = {
+            "d": d,
+            "ts": Date.now()
+        }
+        return data
+    } catch (error) {
+
     }
-    const response = await axios.get('http://14.225.244.63:8083/VendingInterface.asmx/SUNGRP_getInstant', { params })
-    let xmlData = response.data
-    let jsonData = xmlParser.toJson(xmlData)
-    const valueData = JSON.parse(jsonData).DataTable['diffgr:diffgram'].DocumentElement?.dtResult
-    const listModel = [20698013, 20697912, 20697917, 20697923, 20697924, 20697927, 20697996, 20697875, 20697666, 20697578, 20697586, 20697594]
-    let Val = {}
-    for (let i = 0; i < listModel.length; i++) {
-        const dataObjectFilterByModel = valueData ? valueData.filter(value => value.MA_DIEMDO === listModel[i].toString()) : []
-        const dataObject = dataObjectFilterByModel[dataObjectFilterByModel.length - 1]
-        Val[`${listModel[i]}:MA_DIEMDO`] = valueData ? parseFloat(dataObject?.MA_DIEMDO) : null
-        Val[`${listModel[i]}:SO_CTO`] = valueData ? parseFloat(dataObject?.SO_CTO) : null
-        Val[`${listModel[i]}:IMPORT_KWH`] = valueData ? parseFloat(dataObject?.IMPORT_KWH) : null
-        Val[`${listModel[i]}:EXPORT_KWH`] = valueData ? parseFloat(dataObject?.EXPORT_KWH) : null
-        Val[`${listModel[i]}:IMPORT_VAR`] = valueData ? parseFloat(dataObject?.IMPORT_VAR) : null
-        Val[`${listModel[i]}:EXPORT_VAR`] = valueData ? parseFloat(dataObject?.EXPORT_VAR) : null
-        Val[`${listModel[i]}:Ia`] = valueData ? parseFloat(dataObject?.Ia) : null
-        Val[`${listModel[i]}:Ib`] = valueData ? parseFloat(dataObject?.Ib) : null
-        Val[`${listModel[i]}:Ic`] = valueData ? parseFloat(dataObject?.Ic) : null
-        Val[`${listModel[i]}:Ua`] = valueData ? parseFloat(dataObject?.Ua) : null
-        Val[`${listModel[i]}:Ub`] = valueData ? parseFloat(dataObject?.Ub) : null
-        Val[`${listModel[i]}:Uc`] = valueData ? parseFloat(dataObject?.Uc) : null
-        Val[`${listModel[i]}:Cosphi`] = valueData ? parseFloat(dataObject?.Cosphi) : null
-        Val[`${listModel[i]}:NGAYGIO`] = valueData ? dataObject?.NGAYGIO : null
-    }
-    d[`${groupId}`] = {
-        "Val": Val
-    }
-    const data = {
-        "d": d,
-        "ts": Date.now()
-    }
-    return data
 }
 
 // Handle Connect MQTT and Push data
