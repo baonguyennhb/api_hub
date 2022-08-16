@@ -42,51 +42,59 @@ const client = mqtt.connect(mqttUrl, options);
 
 // Handle Call API
 
-const callAPI = async () => {
+async function callAPI(api_source) {
+  let startOfDate = moment().startOf('day').format("YYYY-MM-DD HH:mm:ss")
+
+    //const api_source = api_sources[i];
+    let params
+
+    let sNoList = await api_source.metters.map(metter => metter.serial)
+
+    //console.log(sNoList)
     let d = {}
-    let startOfDate = moment().startOf('day').format("YYYY-MM-DD HH:mm:ss")
-    let params = {
-        sNoList: "20698013,20697912,20697917,20697923,20697924,20697927,20697996,20697875,20697666,20697578,20697586,20697594",
-        sTime: startOfDate
+    params = {
+        sNoList: sNoList,  //20698013,20697912
+        sTime:   '2022-08-15 00:00:00' // startOfDate
     }
-    const response = await axios.get('http://14.225.244.63:8083/VendingInterface.asmx/SUNGRP_getInstant', { params })
+
+    const response = await axios.get(api_source.url, { params })
     let xmlData = response.data
     let jsonData = xmlParser.toJson(xmlData)
     const valueData = JSON.parse(jsonData).DataTable['diffgr:diffgram'].DocumentElement?.dtResult
+    return valueData
 
-    //console.log(valueData)
-    const listModel = [20698013, 20697912, 20697917, 20697923, 20697924, 20697927, 20697996, 20697875, 20697666, 20697578, 20697586, 20697594]
-    let Val = {}
-    for (let i = 0; i < listModel.length; i++) {
-        const dataObjectFilterByModel = valueData ? valueData.filter(value => value.MA_DIEMDO === listModel[i].toString()) : []
-        const dataObject = dataObjectFilterByModel[dataObjectFilterByModel.length - 1]
-        Val[`${listModel[i]}:MA_DIEMDO`] = valueData ? parseFloat(dataObject?.MA_DIEMDO) : null
-        Val[`${listModel[i]}:SO_CTO`] = valueData ? parseFloat(dataObject?.SO_CTO) : null
-        Val[`${listModel[i]}:IMPORT_KWH`] = valueData ? parseFloat(dataObject?.IMPORT_KWH) : null
-        Val[`${listModel[i]}:EXPORT_KWH`] = valueData ? parseFloat(dataObject?.EXPORT_KWH) : null
-        Val[`${listModel[i]}:IMPORT_VAR`] = valueData ? parseFloat(dataObject?.IMPORT_VAR) : null
-        Val[`${listModel[i]}:EXPORT_VAR`] = valueData ? parseFloat(dataObject?.EXPORT_VAR) : null
-        Val[`${listModel[i]}:Ia`] = valueData ? parseFloat(dataObject?.Ia) : null
-        Val[`${listModel[i]}:Ib`] = valueData ? parseFloat(dataObject?.Ib) : null
-        Val[`${listModel[i]}:Ic`] = valueData ? parseFloat(dataObject?.Ic) : null
-        Val[`${listModel[i]}:Ua`] = valueData ? parseFloat(dataObject?.Ua) : null
-        Val[`${listModel[i]}:Ub`] = valueData ? parseFloat(dataObject?.Ub) : null
-        Val[`${listModel[i]}:Uc`] = valueData ? parseFloat(dataObject?.Uc) : null
-        Val[`${listModel[i]}:Cosphi`] = valueData ? parseFloat(dataObject?.Cosphi) : null
-        Val[`${listModel[i]}:NGAYGIO`] = valueData ? dataObject?.NGAYGIO : null
-    }
+    // const listModel = [20698013, 20697912, 20697917, 20697923, 20697924, 20697927, 20697996, 20697875, 20697666, 20697578, 20697586, 20697594]
+    // let Val = {}
+    // for (let i = 0; i < listModel.length; i++) {
+    //     const dataObjectFilterByModel = valueData ? valueData.filter(value => value.MA_DIEMDO === listModel[i].toString()) : []
+    //     const dataObject = dataObjectFilterByModel[dataObjectFilterByModel.length - 1]
+    //     Val[`${listModel[i]}:MA_DIEMDO`] = valueData ? parseFloat(dataObject?.MA_DIEMDO) : null
+    //     Val[`${listModel[i]}:SO_CTO`] = valueData ? parseFloat(dataObject?.SO_CTO) : null
+    //     Val[`${listModel[i]}:IMPORT_KWH`] = valueData ? parseFloat(dataObject?.IMPORT_KWH) : null
+    //     Val[`${listModel[i]}:EXPORT_KWH`] = valueData ? parseFloat(dataObject?.EXPORT_KWH) : null
+    //     Val[`${listModel[i]}:IMPORT_VAR`] = valueData ? parseFloat(dataObject?.IMPORT_VAR) : null
+    //     Val[`${listModel[i]}:EXPORT_VAR`] = valueData ? parseFloat(dataObject?.EXPORT_VAR) : null
+    //     Val[`${listModel[i]}:Ia`] = valueData ? parseFloat(dataObject?.Ia) : null
+    //     Val[`${listModel[i]}:Ib`] = valueData ? parseFloat(dataObject?.Ib) : null
+    //     Val[`${listModel[i]}:Ic`] = valueData ? parseFloat(dataObject?.Ic) : null
+    //     Val[`${listModel[i]}:Ua`] = valueData ? parseFloat(dataObject?.Ua) : null
+    //     Val[`${listModel[i]}:Ub`] = valueData ? parseFloat(dataObject?.Ub) : null
+    //     Val[`${listModel[i]}:Uc`] = valueData ? parseFloat(dataObject?.Uc) : null
+    //     Val[`${listModel[i]}:Cosphi`] = valueData ? parseFloat(dataObject?.Cosphi) : null
+    //     Val[`${listModel[i]}:NGAYGIO`] = valueData ? dataObject?.NGAYGIO : null
+    // }
 
-    //console.log(Val)
+    // //console.log(Val)
 
 
-    d[`${groupId}`] = {
-        "Val": Val
-    }
-    const data = {
-        "d": d,
-        "ts": Date.now()
-    }
-    return data
+    // d[`${groupId}`] = {
+    //     "Val": Val
+    // }
+    // const data = {
+    //     "d": d,
+    //     "ts": Date.now()
+    // }
+    // return data
 }
 
 // Handle Connect MQTT and Push data
@@ -120,6 +128,14 @@ async function ReadMetter() {
   var nextExecutionTime = await getMetterInterval();
   console.log(moment().format('hh:mm:ss'))
 
+  let api_sources = await getApiSource()
+  console.log(api_sources)
+  for (let i = 0; i < api_sources.length; i++) {
+    const api_sources = api_sources[i];
+    let values = await callAPI(api_source)
+  }
+  
+
   //const data = await callAPI()
   //client.publish(mqttTopicSendata, JSON.stringify(data), {qos: 1, retain: true})
   console.log("---> Read Data OK")
@@ -130,11 +146,30 @@ async function ReadMetter() {
 ReadMetter()
 
 async function getMetterInterval(){
-    let sql = 'SELECT * FROM DataSource'
+    let sql = 'SELECT * FROM ApiSource'
     const result = await query(sql)
     //console.log(result[0].interval)
-    return result[0].interval
+    return result[0].interval * 1000
 }
+
+async function getApiSource(){
+  let sql = 'SELECT * FROM ApiSource where is_active = 1'
+  const api_sources = await query(sql)
+  for (let i = 0; i < api_sources.length; i++) {
+    const api_source = api_sources[i];
+    let metters = await query(`SELECT * FROM Metter where api_source = ${api_source.id}`)
+    let tags = []
+    for (let j = 0; j < metters.length; j++) {
+      const metter = metters[j];
+      let tags = await query(`SELECT * FROM Tag where metter_id = '${metter.metter_id}'`)
+      metters[j].tags = tags
+    }
+    api_sources[i].metters = metters
+  }
+  return api_sources
+}
+
+
 
 async function setMetterTagInRaw(){
   let start = moment().startOf('day')
@@ -165,7 +200,8 @@ async function setMetterTagInRaw(){
   return 
 }
 
-setMetterTagInRaw()
+
+//setMetterTagInRaw()
 
 
 
@@ -598,21 +634,21 @@ app.get('/update', (req, res) => {
     }
 })
 
+
+//==================================
 const deviceRouter = require('./Routes/device.route')
 const tagRouter = require('./Routes/tag.route')
 const deviceTagRouter = require('./Routes/device_tag.route')
 const userRouter = require('./Routes/user.route')
-const apiSourceRouter = require('./Routes/apiSource.route');
-const e = require('express');
+const apiSourceRouter = require('./Routes/apiSource.route')
 
 app.group('/api/v1', (router) => {
-    router.use('/user', userRouter)
-    router.use('/api-source', apiSourceRouter)
-    router.use('/device', deviceRouter)
-    router.use('/tag', tagRouter)
-    router.use('/device_tag', deviceTagRouter)
+  router.use('/user', userRouter)
+  router.use('/api-source', apiSourceRouter)
+  router.use('/device', deviceRouter)
+  router.use('/tag', tagRouter)
+  router.use('/device_tag', deviceTagRouter)
 })
-
 
 
 
