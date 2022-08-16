@@ -128,6 +128,7 @@ async function ReadMetter() {
   console.log(start)
 
   for (let i = 0; i < api_sources.length; i++) {
+
     const api_source = api_sources[i];
 
     let all_tags = await getTagInRawNeedupdate(api_source.id, start)
@@ -145,6 +146,7 @@ async function ReadMetter() {
 
       }
     }
+
   }
 
   //client.publish(mqttTopicSendata, JSON.stringify(data), {qos: 1, retain: true})
@@ -155,12 +157,11 @@ async function ReadMetter() {
 
 ReadMetter()
 
-
-
 async function getMetterInterval() {
   let sql = 'SELECT * FROM ApiSource'
   const result = await query(sql)
   return result[0].interval * 1000
+
 }
 
 async function getApiSource() {

@@ -569,8 +569,6 @@ async function CallDataFromApiSource(url) {
     }
 }
 
-ReadMetter()
-
 async function getMetterInterval() {
     var nextExecutionTime = await getMetterInterval();
         console.log(moment().format('hh:mm:ss'))
