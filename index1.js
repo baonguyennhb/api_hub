@@ -127,8 +127,6 @@ async function ReadMetter() {
   setTimeout(ReadMetter, nextExecutionTime);
 }
 
-ReadMetter()
-
 async function getMetterInterval(){
     let sql = 'SELECT * FROM DataSource'
     const result = await query(sql)
