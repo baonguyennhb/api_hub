@@ -3,7 +3,7 @@ services:
   server:
     build: .
     container_name: api_hub
-    command: node index
+    command: node test
     ports:
       - "4000:4000"
     environment:

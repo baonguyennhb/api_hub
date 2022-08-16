@@ -23,7 +23,7 @@ module.exports.postAdd = async (req, res) => {
 
   try {
     let data = req.body
-    let sql = `INSERT INTO Tag (metter_id, name, parameter, data_type, scale) Values ( '${data.metterId}', '${data.name}', '${data.paramter}', '${data.data_type}', '${data.scale}' )`
+    let sql = `INSERT INTO Tag (api_source, metter_id, name, parameter, data_type, scale) Values ( '${data.apiSource}', '${data.metterId}', '${data.name}', '${data.paramter}', '${data.data_type}', '${data.scale}' )`
     const devices = await query(sql)
     const dataSend = {
       code: 200,
@@ -100,24 +100,19 @@ module.exports.MonitorTag = async (req, res) => {
     let sql = 'SELECT * FROM Tag WHERE metter_id=?'
     let params = [metterId]
     const tags = await query(sql, params)
-    const metterSerial = tags[0].metter_id.split("_")[1]
-    let dataSource = await fsPromises.readFile("data.json")
-    dataSource = JSON.parse(dataSource)
-    const dataByMetterAll = dataSource.data.filter(value => value.SO_CTO === metterSerial)
-    const dataByMetterLast = dataByMetterAll[dataByMetterAll.length -1]
-    let dataTag = []
-    for (let i = 0; i < tags.length; i++) {
-      const tagObject = {
-        tagName: tags[i].name,
-        value: dataByMetterLast[tags[i].parameter],
-        timestamp: dataSource.timestamp
+    const tagData = tags.map(tag => {
+      return {
+        id: tag.id,
+        tagName: tag.name,
+        tagParameter: tag.parameter,
+        value: tag.last_value,
+        timestamp: tag.timestamp
       }
-      dataTag.push(tagObject)
-    }
+    })
     const dataSend = {
       code: 200,
       message: "OK",
-      data: dataTag
+      data: tagData
     }
     res.status(200).send(dataSend)
   } catch (error) {
