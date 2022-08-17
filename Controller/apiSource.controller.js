@@ -1,5 +1,7 @@
 const common = require('../Common/query')
 const query = common.query
+const { Telnet } = require('telnet-client')
+
 
 module.exports.GetList = async (req, res) => {
     try {
@@ -71,4 +73,38 @@ module.exports.delDelete = async (req, res) => {
     } catch (error) {
         console.log(error)
     }
+}
+
+
+module.exports.GetTestConnect = async (req, res) => {
+  try {
+    let url = req.query.url
+    const urlObject = new URL(url);
+    const hostName = urlObject.hostname;
+    const port = urlObject.port;
+
+    const connection = new Telnet()
+    const params = {
+      host: hostName,
+      port: port,
+      shellPrompt: false, // '/ # ', // or negotiationMandatory: false
+      timeout: 1000
+    }
+    let result = { status: 'Connected'}
+    try {
+      let rs = await connection.connect(params)
+    } catch (error) {
+      result = { status: 'Disconnect' }
+    }
+    //console.log('rs', result)
+    const dataSend = {
+        code: 200,
+        message: "OK",
+        data: result
+    }
+    res.status(200).send(dataSend)
+  } catch (error) {
+      console.log(error)
+      return
+  }
 }
