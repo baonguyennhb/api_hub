@@ -1,3 +1,4 @@
+const moment = require('moment');
 const common = require('../Common/query')
 const query = common.query
 var fsPromises = require('fs').promises;
@@ -77,15 +78,16 @@ module.exports.postEdit = async (req, res) => {
   try {
     let id = req.query.id
     let data = req.body
+    console.log(req.query)
     //let sql = `SELECT * FROM Metter `
-    let sql = `UPDATE Tag SET name = '${data.name}' where id = ${id}`
+    let sql = `UPDATE Tag SET name = '${data.name}', scale = '${data.scale}', data_type = '${data.data_type}' where id = ${id}`
 
     //let sql = 'SELECT * FROM Metter'
-    const devices = await query(sql)
+    const tag = await query(sql)
     const dataSend = {
       code: 200,
       message: "OK",
-      data: devices
+      data: tag
     }
     res.status(200).send(dataSend)
   } catch (error) {
@@ -127,6 +129,32 @@ module.exports.MonitorTag = async (req, res) => {
         tagParameter: tag.parameter,
         value: tag.last_value,
         timestamp: tag.timestamp
+      }
+    })
+    const dataSend = {
+      code: 200,
+      message: "OK",
+      data: tagData
+    }
+    res.status(200).send(dataSend)
+  } catch (error) {
+    console.log(error)
+  }
+}
+
+module.exports.MonitorTagLog = async (req, res) => {
+  try {
+    const { tagId } = req.query
+    const now = moment().format("YYYY-MM-DD HH:mm:ss")
+    let sql = `SELECT * FROM RawData WHERE tag_id=? AND timestamp<?  ORDER BY timestamp DESC`
+    let tagInfo = await query ('SELECT * FROM Tag WHERE id=?',[tagId])
+    let tagName = tagInfo[0]?.name
+    let params = [tagId, now]
+    const tags = await query(sql, params)
+    const tagData = tags.map(tag => {
+      return {
+        ...tag,
+        tag_name: tagName
       }
     })
     const dataSend = {

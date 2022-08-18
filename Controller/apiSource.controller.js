@@ -54,6 +54,28 @@ module.exports.postAdd = async (req, res) => {
         console.log(error)
     }
 }
+
+module.exports.postEdit = async (req, res) => {
+    try {
+        let id = req.query.id
+        let data = req.body
+        console.log(req.query)
+        //let sql = `SELECT * FROM Metter `
+        let sql = `UPDATE ApiSource SET connection_name = '${data.connection_name}', url = '${data.url}', description = '${data.description}', interval = '${data.interval}' , connection_time = '${data.check_connection_time}' where id = ${id}`
+
+        //let sql = 'SELECT * FROM Metter'
+        const api = await query(sql)
+        const dataSend = {
+            code: 200,
+            message: "OK",
+            data: api
+        }
+        res.status(200).send(dataSend)
+    } catch (error) {
+        console.log(error)
+    }
+}
+
 module.exports.delDelete = async (req, res) => {
     try {
         let id = req.query.id

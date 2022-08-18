@@ -8,4 +8,5 @@ router.get('/edit', controller.getEdit)
 router.post('/edit', controller.postEdit)
 router.delete('/delete', controller.delDelete)
 router.get("/monitor", controller.MonitorTag)
+router.get("/log", controller.MonitorTagLog)
 module.exports = router
