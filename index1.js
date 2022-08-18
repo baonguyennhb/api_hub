@@ -140,8 +140,12 @@ async function ReadMetter() {
         const tag = all_tags[j];
         const result = data_sources.data.find(({ NGAYGIO }) => NGAYGIO === tag.timestamp.toString());
 
+        let _tag = await query(`SELECT * From Tag where metter_id = '${tag.metter_id}' and parameter = '${tag.param}'`)
+
         if (result) {
-          let rs = await query(`UPDATE RawData SET value = '${result[tag.param]}', is_had_data = 1 WHERE id = ${tag.id}`);
+          //console.log('---> tag', _tag[0].data_type, result[tag.param], _tag[0].scale)
+          let _value = _tag[0].data_type == "Number" ? parseFloat(result[tag.param]) * parseFloat(_tag[0].scale) : result[tag.param]
+          let rs = await query(`UPDATE RawData SET value = '${_value}', is_had_data = 1 WHERE id = ${tag.id}`);
         }
 
       }
@@ -182,26 +186,36 @@ async function getApiSource() {
 }
 
 async function setTagInRawData() {
-  let start = moment().startOf('day')
+  try{
+    let start = moment().startOf('day')
 
-  let sql = `SELECT Tag.id as TagId, * FROM Tag 
-              JOIN Metter on Metter.metter_id = Tag.metter_id 
-            `
-  const tags = await query(sql)
+    let sql = `SELECT Tag.id as TagId, * FROM Tag 
+                JOIN Metter on Metter.metter_id = Tag.metter_id 
+              `
+    const tags = await query(sql)
 
-  //console.log('tags', tags)
+    //console.log('tags', tags)
 
-  for (let i = 0; i < 48; i++) {
-    timestamp_str = start.format('YYYY-MM-DD HH:mm:ss')
-    await tags.forEach(async e => {
-      let sql2 = `INSERT INTO RawData (timestamp, api_source, tag_id, metter_id, tag_name, serial, param) 
-         Values ( '${timestamp_str}', ${e.api_source}, ${e.TagId}, '${e.metter_id}', '${e.serial}:${e.parameter}', ${e.serial}, '${e.parameter}' )`
-      const result2 = await query(sql2)
-    });
+    for (let i = 0; i < 48; i++) {
+      timestamp_str = start.format('YYYY-MM-DD HH:mm:ss')
+      await tags.forEach(async e => {
+        let sql2 = `INSERT INTO RawData (timestamp, api_source, tag_id, metter_id, serial, param) Values ( '${timestamp_str}', ${e.api_source}, ${e.TagId}, '${e.metter_id}', ${e.serial}, '${e.parameter}' )`
+        try{
+          await query(sql2)
+        }catch(error){
+          //console.log(error.message)
+        }
+        
+      });
 
-    start = moment(start).add(30, 'minutes')
-    //console.log(metter_tags)
+      start = moment(start).add(30, 'minutes')
+      //console.log(metter_tags)
+    }
+
+  }catch(e){
+    console.log(e.message)
   }
+  
 
 
   //let sql = 'SELECT * FROM Metter'
@@ -215,7 +229,7 @@ async function setTagInRawData() {
 async function getTagInRawNeedupdate(api_source, start1) {
   let start = moment(start1).format('YYYY-MM-DD HH:mm:ss')
   let end = moment().format('YYYY-MM-DD HH:mm:ss')
-  let sql = `SELECT DISTINCT timestamp, serial, param, id  FROM RawData WHERE timestamp BETWEEN '${start}' AND '${end}' and is_had_data = 0 and api_source = ${api_source}`
+  let sql = `SELECT DISTINCT timestamp, serial, param, id, metter_id  FROM RawData WHERE timestamp BETWEEN '${start}' AND '${end}' and is_had_data = 0 and api_source = ${api_source}`
   const tags = await query(sql)
   return tags
 }
@@ -671,10 +685,10 @@ app.group('/api/v1', (router) => {
 // Run job every 0h5 am everyday
 var job0h5 = new CronJob('5 0 * * *', async function() {
   await setTagInRawData()    
-
 }, null, true, 'Asia/Ho_Chi_Minh');
 
 job0h5.start()
+setTagInRawData()
 //================================================================
 
 
