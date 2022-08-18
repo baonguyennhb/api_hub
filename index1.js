@@ -21,8 +21,6 @@ app.listen(port, () => {
   console.log(`Server is running on port ${port}`)
 })
 
-
-
 // Variable
 const groupId = 'scada_qQ2N60h1DmL'
 const mqttUrl = "mqtt://rabbitmq-001-pub.hz.wise-paas.com.cn:1883"
@@ -40,59 +38,28 @@ var options = {
 
 const client = mqtt.connect(mqttUrl, options);
 
-
-
 // Handle Call API with 1 api source
 async function callAPI(api_source, start) {
-  let startOfDate = moment(start).startOf('day').format("YYYY-MM-DD HH:mm:ss")
-  let params
-  let sNoList = await api_source.metters.map(metter => metter.serial)
-  let d = {}
-  params = {
-    sNoList: sNoList.toString(), // 20697927, //sNoList,  //20698013,20697912
-    sTime: startOfDate     // startOfDate
+  try {
+    let startOfDate = moment(start).startOf('day').format("YYYY-MM-DD HH:mm:ss")
+    let params
+    let sNoList = await api_source.metters.map(metter => metter.serial)
+    let d = {}
+    params = {
+      sNoList: sNoList.toString(), // 20697927, //sNoList,  //20698013,20697912
+      sTime: startOfDate     // startOfDate
+    }
+    const response = await axios.get(api_source.url, { params })
+    let xmlData = response.data
+    let jsonData = xmlParser.toJson(xmlData)
+    const valueData = JSON.parse(jsonData).DataTable['diffgr:diffgram'].DocumentElement?.dtResult
+    return {
+      data: valueData,
+      ts: moment().format("YYYY-MM-DD HH:mm:ss")
+    }
+  } catch (error) {
+
   }
-  const response = await axios.get(api_source.url, { params })
-  let xmlData = response.data
-  let jsonData = xmlParser.toJson(xmlData)
-  const valueData = JSON.parse(jsonData).DataTable['diffgr:diffgram'].DocumentElement?.dtResult
-  return {
-    data: valueData,
-    ts: moment().format("YYYY-MM-DD HH:mm:ss")
-  }
-
-  // const listModel = [20698013, 20697912, 20697917, 20697923, 20697924, 20697927, 20697996, 20697875, 20697666, 20697578, 20697586, 20697594]
-  // let Val = {}
-  // for (let i = 0; i < listModel.length; i++) {
-  //     const dataObjectFilterByModel = valueData ? valueData.filter(value => value.MA_DIEMDO === listModel[i].toString()) : []
-  //     const dataObject = dataObjectFilterByModel[dataObjectFilterByModel.length - 1]
-  //     Val[`${listModel[i]}:MA_DIEMDO`] = valueData ? parseFloat(dataObject?.MA_DIEMDO) : null
-  //     Val[`${listModel[i]}:SO_CTO`] = valueData ? parseFloat(dataObject?.SO_CTO) : null
-  //     Val[`${listModel[i]}:IMPORT_KWH`] = valueData ? parseFloat(dataObject?.IMPORT_KWH) : null
-  //     Val[`${listModel[i]}:EXPORT_KWH`] = valueData ? parseFloat(dataObject?.EXPORT_KWH) : null
-  //     Val[`${listModel[i]}:IMPORT_VAR`] = valueData ? parseFloat(dataObject?.IMPORT_VAR) : null
-  //     Val[`${listModel[i]}:EXPORT_VAR`] = valueData ? parseFloat(dataObject?.EXPORT_VAR) : null
-  //     Val[`${listModel[i]}:Ia`] = valueData ? parseFloat(dataObject?.Ia) : null
-  //     Val[`${listModel[i]}:Ib`] = valueData ? parseFloat(dataObject?.Ib) : null
-  //     Val[`${listModel[i]}:Ic`] = valueData ? parseFloat(dataObject?.Ic) : null
-  //     Val[`${listModel[i]}:Ua`] = valueData ? parseFloat(dataObject?.Ua) : null
-  //     Val[`${listModel[i]}:Ub`] = valueData ? parseFloat(dataObject?.Ub) : null
-  //     Val[`${listModel[i]}:Uc`] = valueData ? parseFloat(dataObject?.Uc) : null
-  //     Val[`${listModel[i]}:Cosphi`] = valueData ? parseFloat(dataObject?.Cosphi) : null
-  //     Val[`${listModel[i]}:NGAYGIO`] = valueData ? dataObject?.NGAYGIO : null
-  // }
-
-  // //console.log(Val)
-
-
-  // d[`${groupId}`] = {
-  //     "Val": Val
-  // }
-  // const data = {
-  //     "d": d,
-  //     "ts": Date.now()
-  // }
-  // return data
 }
 
 // Handle Connect MQTT and Push data
@@ -122,10 +89,57 @@ async function ReadMetter() {
   let api_sources = await getApiSource()
 
   let start = moment().startOf('days')
-  if(moment().hour() <= 2 ){
+  if (moment().hour() <= 2) {
     start = moment().subtract(2, 'hours').startOf('days')
   }
   console.log(start)
+
+
+  //====> Update LastValue in Tag Table
+
+  let sql = "SELECT * " +
+    "FROM ApiSource " +
+    "LEFT JOIN Metter " +
+    "ON ApiSource.id = Metter.api_source " +
+    "LEFT JOIN Tag " +
+    "ON Tag.metter_id = Metter.metter_id"
+
+  const allTags = await query(sql)
+
+  let dataOfAllApiSource = {}
+  for (let i = 0; i < api_sources.length; i++) {
+    const api_source = api_sources[i];
+    dataOfAllApiSource[`${api_source.connection_name}`] = await callAPI(api_source, start)
+  }
+
+  for (let i = 0; i < allTags.length; i++) {
+    if (allTags[i].connection_name && allTags[i].metter_id && allTags[i].parameter) {
+      let apiSource = allTags[i].connection_name
+      let apiSourceId = allTags[i].api_source
+      let serialMetter = allTags[i].serial
+      let parameterTag = allTags[i].parameter
+      let dataType = allTags[i].data_type
+      let scale = allTags[i].scale
+      let metterId = allTags[i].metter_id
+      let filterDataBySerial = dataOfAllApiSource[`${apiSource}`].data.filter(value => value.SO_CTO === serialMetter.toString())
+      let timestamp = dataOfAllApiSource[`${apiSource}`].ts
+      let tagData = filterDataBySerial.length ? filterDataBySerial[filterDataBySerial.length - 1][`${parameterTag}`] : undefined
+      if (tagData !== undefined) {
+        console.log(tagData)
+        let dataByScale
+        if (dataType === "Number") {
+          dataByScale = tagData * scale
+        } else {
+          dataByScale = tagData
+        }
+        let sqlUpdateValue = `UPDATE Tag SET last_value = '${dataByScale}', timestamp = '${timestamp}' where api_source = '${apiSourceId}' AND metter_id = '${metterId}' AND parameter= '${parameterTag}'`
+        const updated = await query(sqlUpdateValue)
+      }
+    }
+  }
+  //=====> Update Last Value in Tag Table
+
+  //=====> Insert Raw Data
 
   for (let i = 0; i < api_sources.length; i++) {
 
@@ -138,6 +152,7 @@ async function ReadMetter() {
     if (all_tags) {
       for (let j = 0; j < all_tags.length; j++) {
         const tag = all_tags[j];
+        //console.log(tag)
         const result = data_sources.data.find(({ NGAYGIO }) => NGAYGIO === tag.timestamp.toString());
 
         if (result) {
@@ -148,8 +163,7 @@ async function ReadMetter() {
     }
 
   }
-
-  //client.publish(mqttTopicSendata, JSON.stringify(data), {qos: 1, retain: true})
+  //=====> Insert Raw Data
   console.log("---> Read Data OK", moment().format('HH:mm:ss'))
 
   setTimeout(ReadMetter, nextExecutionTime);
@@ -205,8 +219,6 @@ async function setTagInRawData() {
 
 
   //let sql = 'SELECT * FROM Metter'
-
-
 
 
   //return 
@@ -499,7 +511,6 @@ const deleteDevice = (serial) => {
   return dataConfig
 }
 
-
 // API TESTING
 
 app.get('/cfg', async (req, res) => {
@@ -656,7 +667,8 @@ const deviceRouter = require('./Routes/device.route')
 const tagRouter = require('./Routes/tag.route')
 const deviceTagRouter = require('./Routes/device_tag.route')
 const userRouter = require('./Routes/user.route')
-const apiSourceRouter = require('./Routes/apiSource.route')
+const apiSourceRouter = require('./Routes/apiSource.route');
+const { stat } = require('fs');
 
 app.group('/api/v1', (router) => {
   router.use('/user', userRouter)
@@ -669,14 +681,19 @@ app.group('/api/v1', (router) => {
 
 //================================================================
 // Run job every 0h5 am everyday
-var job0h5 = new CronJob('5 0 * * *', async function() {
-  await setTagInRawData()    
+var job0h5 = new CronJob('5 0 * * *', async function () {
+  await setTagInRawData()
 
 }, null, true, 'Asia/Ho_Chi_Minh');
 
 job0h5.start()
+setTagInRawData()
 //================================================================
 
+//================================================================
+// Check Status API SOURCE
+
+//================================================================
 
 
 
