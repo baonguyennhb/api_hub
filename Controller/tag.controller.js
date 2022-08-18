@@ -2,7 +2,6 @@ const moment = require('moment');
 const common = require('../Common/query')
 const query = common.query
 var fsPromises = require('fs').promises;
-const moment = require('moment')
 
 module.exports.GetList = async (req, res) => {
   try {
