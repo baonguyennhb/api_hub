@@ -9,4 +9,6 @@ router.post('/add', controller.postAdd)
 router.post('/edit', controller.postEdit)
 router.delete('/delete', controller.delDelete)
 
+router.get('/test-connect', controller.GetTestConnect)
+
 module.exports = router

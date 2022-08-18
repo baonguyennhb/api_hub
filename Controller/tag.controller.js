@@ -2,6 +2,7 @@ const moment = require('moment');
 const common = require('../Common/query')
 const query = common.query
 var fsPromises = require('fs').promises;
+const moment = require('moment')
 
 module.exports.GetList = async (req, res) => {
   try {
@@ -21,15 +22,33 @@ module.exports.GetList = async (req, res) => {
 }
 
 module.exports.postAdd = async (req, res) => {
-
+  let start = moment().startOf('days')
   try {
     let data = req.body
-    let sql = `INSERT INTO Tag (api_source, metter_id, name, parameter, data_type, scale) Values ( '${data.apiSource}', '${data.metterId}', '${data.name}', '${data.paramter}', '${data.data_type}', '${data.scale}' )`
+    let sql = `INSERT INTO Tag (api_source, metter_id, name, parameter, data_type, scale) 
+                Values ( '${data.apiSource}', '${data.metterId}', '${data.name}', '${data.paramter}', '${data.data_type}', '${data.scale}' )`
     const devices = await query(sql)
+
+    //console.log(devices)
+    let metter = await query(`SELECT * FROM Metter where metter_id = '${data.metterId}' and api_source = ${data.apiSource} `)
+    let tag = await query(`SELECT * FROM Tag where metter_id = '${data.metterId}' and api_source = ${data.apiSource} and parameter = '${data.paramter}'`)
+
+
+    for (let i = 0; i < 48; i++) {
+      timestamp_str = moment(start).format('YYYY-MM-DD HH:mm:ss')
+
+      let sql2 = `INSERT INTO RawData (timestamp, api_source, metter_id, tag_name, serial, param, tag_id) 
+      Values ( '${timestamp_str}', ${data.apiSource}, '${data.metterId}', 'ABC', ${metter[0].serial}, '${data.paramter}', ${tag[0].id} )`
+      const result2 = await query(sql2)
+
+      start = moment(start).add(30, 'minutes')
+      //console.log(metter_tags)
+    }
+
     const dataSend = {
       code: 200,
       message: "OK",
-      data: devices
+      data: tag[0]
     }
     res.status(200).send(dataSend)
   } catch (error) {
@@ -80,6 +99,7 @@ module.exports.delDelete = async (req, res) => {
   try {
     let id = req.query.id
     //let data = req.body
+    const rs_del = await query(`Delete From RawData where tag_id = ${id}`)
     //let sql = `SELECT * FROM Metter `
     let sql = `DELETE FROM Tag where id = ${id}`
 
