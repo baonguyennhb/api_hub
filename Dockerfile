@@ -12,4 +12,4 @@ COPY . .
 
 RUN npm install
 
-CMD ["node","test.js"]
+CMD ["node","index1.js"]
