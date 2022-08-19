@@ -24,14 +24,16 @@ module.exports.postAdd = async (req, res) => {
   let start = moment().startOf('days')
   try {
     let data = req.body
+    console.log(data)
     let sql = `INSERT INTO Tag (api_source, metter_id, name, parameter, data_type, scale) 
-                Values ( '${data.apiSource}', '${data.metterId}', '${data.name}', '${data.paramter}', '${data.data_type}', '${data.scale}' )`
-    const devices = await query(sql)
+                Values ( '${data.apiSource}', '${data.metterId}', '${data.name}', '${data.parameter}', '${data.data_type}', '${data.scale}' )`
+    const tagCreate = await query(sql)
 
     //console.log(devices)
     let metter = await query(`SELECT * FROM Metter where metter_id = '${data.metterId}' and api_source = ${data.apiSource} `)
-    let tag = await query(`SELECT * FROM Tag where metter_id = '${data.metterId}' and api_source = ${data.apiSource} and parameter = '${data.paramter}'`)
+    let tag = await query(`SELECT * FROM Tag where metter_id = '${data.metterId}' and api_source = ${data.apiSource} and parameter = '${data.parameter}'`)
 
+    //console.log(tag)
 
     for (let i = 0; i < 48; i++) {
       timestamp_str = moment(start).format('YYYY-MM-DD HH:mm:ss')

@@ -112,11 +112,11 @@ module.exports.GetTestConnect = async (req, res) => {
       shellPrompt: false, // '/ # ', // or negotiationMandatory: false
       timeout: 1000
     }
-    let result = { status: 'Connect suceessfully'}
+    let result = {code: 200, status: 'Connect suceessfully'}
     try {
       let rs = await connection.connect(params)
     } catch (error) {
-      result = { status: 'Connect faile' }
+      result = {code: 400, status: 'Connect faile' }
     }
     //console.log('rs', result)
     const dataSend = {

@@ -58,8 +58,7 @@ module.exports.postEdit = async (req, res) => {
     let id = req.query.id
     let data = req.body
     //let sql = `SELECT * FROM Metter `
-    let sql = `UPDATE Metter SET metter_id = ${data.serial}, Model = '${data.model}', 
-                Description = '${data.description}', Interval= ${data.interval}  where id = ${id}`
+    let sql = `UPDATE Metter SET description = '${data.description}', interval= ${data.interval}  where id = ${id}`
 
       //let sql = 'SELECT * FROM Metter'
     const devices = await query(sql)

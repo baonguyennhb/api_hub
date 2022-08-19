@@ -85,122 +85,136 @@ client.on("connect", ack => {
 // Read Metter as interval
 
 async function ReadMetter() {
-  var nextExecutionTime = await getMetterInterval();
-  let api_sources = await getApiSource()
+  try {
 
-  let start = moment().startOf('days')
-  if (moment().hour() <= 2) {
-    start = moment().subtract(2, 'hours').startOf('days')
-  }
-  console.log(start)
+    var nextExecutionTime = await getMetterInterval();
+    let api_sources = await getApiSource()
 
-
-  //====> Update LastValue in Tag Table
-
-  let sql = "SELECT * " +
-    "FROM ApiSource " +
-    "LEFT JOIN Metter " +
-    "ON ApiSource.id = Metter.api_source " +
-    "LEFT JOIN Tag " +
-    "ON Tag.metter_id = Metter.metter_id"
-
-  const allTags = await query(sql)
-
-  let dataOfAllApiSource = {}
-  for (let i = 0; i < api_sources.length; i++) {
-    const api_source = api_sources[i];
-    dataOfAllApiSource[`${api_source.connection_name}`] = await callAPI(api_source, start)
-  }
-
-  for (let i = 0; i < allTags.length; i++) {
-    if (allTags[i].connection_name && allTags[i].metter_id && allTags[i].parameter) {
-      let apiSource = allTags[i].connection_name
-      let apiSourceId = allTags[i].api_source
-      let serialMetter = allTags[i].serial
-      let parameterTag = allTags[i].parameter
-      let dataType = allTags[i].data_type
-      let scale = allTags[i].scale
-      let metterId = allTags[i].metter_id
-      let filterDataBySerial = dataOfAllApiSource[`${apiSource}`].data.filter(value => value.SO_CTO === serialMetter.toString())
-      let timestamp = dataOfAllApiSource[`${apiSource}`].ts
-      let tagData = filterDataBySerial.length ? filterDataBySerial[filterDataBySerial.length - 1][`${parameterTag}`] : undefined
-      if (tagData !== undefined) {
-        console.log(tagData)
-        let dataByScale
-        if (dataType === "Number") {
-          dataByScale = tagData * scale
-        } else {
-          dataByScale = tagData
-        }
-        let sqlUpdateValue = `UPDATE Tag SET last_value = '${dataByScale}', timestamp = '${timestamp}' where api_source = '${apiSourceId}' AND metter_id = '${metterId}' AND parameter= '${parameterTag}'`
-        const updated = await query(sqlUpdateValue)
-      }
+    let start = moment().startOf('days')
+    if (moment().hour() <= 2) {
+      start = moment().subtract(2, 'hours').startOf('days')
     }
-  }
-  //=====> Update Last Value in Tag Table
+    console.log(start)
 
-  //=====> Insert Raw Data
 
-  for (let i = 0; i < api_sources.length; i++) {
+    //====> Update LastValue in Tag Table
 
-    const api_source = api_sources[i];
+    let sql = "SELECT * " +
+      "FROM ApiSource " +
+      "LEFT JOIN Metter " +
+      "ON ApiSource.id = Metter.api_source " +
+      "LEFT JOIN Tag " +
+      "ON Tag.metter_id = Metter.metter_id"
 
-    let all_tags = await getTagInRawNeedupdate(api_source.id, start)
-    let data_sources = await callAPI(api_source, start)
+    const allTags = await query(sql)
 
-    console.log('All_tags', all_tags.length)
-    if (all_tags) {
-      for (let j = 0; j < all_tags.length; j++) {
-        const tag = all_tags[j];
-        //console.log(tag)
-        const result = data_sources.data.find(({ NGAYGIO }) => NGAYGIO === tag.timestamp.toString());
-
-        let _tag = await query(`SELECT * From Tag where metter_id = '${tag.metter_id}' and parameter = '${tag.param}'`)
-
-        if (result) {
-          //console.log('---> tag', _tag[0].data_type, result[tag.param], _tag[0].scale)
-          let _value = _tag[0].data_type == "Number" ? parseFloat(result[tag.param]) * parseFloat(_tag[0].scale) : result[tag.param]
-          let rs = await query(`UPDATE RawData SET value = '${_value}', is_had_data = 1 WHERE id = ${tag.id}`);
-        }
-
-      }
+    let dataOfAllApiSource = {}
+    for (let i = 0; i < api_sources.length; i++) {
+      const api_source = api_sources[i];
+      dataOfAllApiSource[`${api_source.connection_name}`] = await callAPI(api_source, start)
     }
 
-  }
-  //=====> Insert Raw Data
-  console.log("---> Read Data OK", moment().format('HH:mm:ss'))
+    for (let i = 0; i < allTags.length; i++) {
+      if (allTags[i].connection_name && allTags[i].metter_id && allTags[i].parameter) {
+        let apiSource = allTags[i].connection_name
+        let apiSourceId = allTags[i].api_source
+        let serialMetter = allTags[i].serial
+        let parameterTag = allTags[i].parameter
+        let dataType = allTags[i].data_type
+        let scale = allTags[i].scale
+        let metterId = allTags[i].metter_id
+        let filterDataBySerial = dataOfAllApiSource[`${apiSource}`].data.filter(value => value.SO_CTO === serialMetter.toString())
+        let timestamp = dataOfAllApiSource[`${apiSource}`].ts
+        let tagData = filterDataBySerial.length ? filterDataBySerial[filterDataBySerial.length - 1][`${parameterTag}`] : undefined
+        if (tagData !== undefined) {
+          console.log(tagData)
+          let dataByScale
+          if (dataType === "Number") {
+            dataByScale = tagData * scale
+          } else {
+            dataByScale = tagData
+          }
+          let sqlUpdateValue = `UPDATE Tag SET last_value = '${dataByScale}', timestamp = '${timestamp}' where api_source = '${apiSourceId}' AND metter_id = '${metterId}' AND parameter= '${parameterTag}'`
+          const updated = await query(sqlUpdateValue)
+        }
+      }
+    }
+    //=====> Update Last Value in Tag Table
 
-  setTimeout(ReadMetter, nextExecutionTime);
+    //=====> Insert Raw Data
+
+    for (let i = 0; i < api_sources.length; i++) {
+
+      const api_source = api_sources[i];
+
+      let all_tags = await getTagInRawNeedupdate(api_source.id, start)
+      let data_sources = await callAPI(api_source, start)
+
+      console.log('All_tags', all_tags.length)
+      if (all_tags) {
+        for (let j = 0; j < all_tags.length; j++) {
+          const tag = all_tags[j];
+          //console.log(tag)
+          const result = data_sources.data.find(({ NGAYGIO }) => NGAYGIO === tag.timestamp.toString());
+
+          let _tag = await query(`SELECT * From Tag where metter_id = '${tag.metter_id}' and parameter = '${tag.param}'`)
+
+          if (result) {
+            //console.log('---> tag', _tag[0].data_type, result[tag.param], _tag[0].scale)
+            let _value = _tag[0]?.data_type == "Number" ? parseFloat(result[tag.param]) * parseFloat(_tag[0].scale) : result[tag.param]
+            let rs = await query(`UPDATE RawData SET value = '${_value}', is_had_data = 1 WHERE id = ${tag.id}`);
+          }
+
+        }
+      }
+
+    }
+    //=====> Insert Raw Data
+    console.log("---> Read Data OK", moment().format('HH:mm:ss'))
+
+    setTimeout(ReadMetter, nextExecutionTime);
+  }
+  catch (error) {
+    console.log(error)
+  }
 }
 
 ReadMetter()
 
 async function getMetterInterval() {
-  let sql = 'SELECT * FROM ApiSource'
-  const result = await query(sql)
-  return result[0].interval * 1000
+  try {
+    let sql = 'SELECT * FROM ApiSource'
+    const result = await query(sql)
+    return result[0].interval * 1000
+  } catch (error) {
+    console.log(error)
+  }
 
 }
 
 async function getApiSource() {
-  let sql = 'SELECT * FROM ApiSource where is_active = 1'
-  const api_sources = await query(sql)
-  for (let i = 0; i < api_sources.length; i++) {
-    const api_source = api_sources[i];
-    let metters = await query(`SELECT * FROM Metter where api_source = ${api_source.id}`)
-    let tags = []
-    for (let j = 0; j < metters.length; j++) {
-      const metter = metters[j];
-      let tags = await query(`SELECT * FROM Tag where metter_id = '${metter.metter_id}'`)
-      metters[j].tags = tags
+  try {
+    let sql = 'SELECT * FROM ApiSource where is_active = 1'
+    const api_sources = await query(sql)
+    for (let i = 0; i < api_sources.length; i++) {
+      const api_source = api_sources[i];
+      let metters = await query(`SELECT * FROM Metter where api_source = ${api_source.id}`)
+      let tags = []
+      for (let j = 0; j < metters.length; j++) {
+        const metter = metters[j];
+        let tags = await query(`SELECT * FROM Tag where metter_id = '${metter.metter_id}'`)
+        metters[j].tags = tags
+      }
+      api_sources[i].metters = metters
     }
-    api_sources[i].metters = metters
+    return api_sources
+  } catch (error) {
+    console.log(error)
   }
-  return api_sources
 }
 
 async function setTagInRawData() {
-  try{
+  try {
     let start = moment().startOf('day')
 
     let sql = `SELECT Tag.id as TagId, * FROM Tag 
@@ -214,22 +228,22 @@ async function setTagInRawData() {
       timestamp_str = start.format('YYYY-MM-DD HH:mm:ss')
       await tags.forEach(async e => {
         let sql2 = `INSERT INTO RawData (timestamp, api_source, tag_id, metter_id, serial, param) Values ( '${timestamp_str}', ${e.api_source}, ${e.TagId}, '${e.metter_id}', ${e.serial}, '${e.parameter}' )`
-        try{
+        try {
           await query(sql2)
-        }catch(error){
+        } catch (error) {
           //console.log(error.message)
         }
-        
+
       });
 
       start = moment(start).add(30, 'minutes')
       //console.log(metter_tags)
     }
 
-  }catch(e){
+  } catch (e) {
     console.log(e.message)
   }
-  
+
 
 
   //let sql = 'SELECT * FROM Metter'
@@ -239,11 +253,15 @@ async function setTagInRawData() {
 }
 
 async function getTagInRawNeedupdate(api_source, start1) {
-  let start = moment(start1).format('YYYY-MM-DD HH:mm:ss')
-  let end = moment().format('YYYY-MM-DD HH:mm:ss')
-  let sql = `SELECT DISTINCT timestamp, serial, param, id, metter_id  FROM RawData WHERE timestamp BETWEEN '${start}' AND '${end}' and is_had_data = 0 and api_source = ${api_source}`
-  const tags = await query(sql)
-  return tags
+  try {
+    let start = moment(start1).format('YYYY-MM-DD HH:mm:ss')
+    let end = moment().format('YYYY-MM-DD HH:mm:ss')
+    let sql = `SELECT DISTINCT timestamp, serial, param, id, metter_id  FROM RawData WHERE timestamp BETWEEN '${start}' AND '${end}' and is_had_data = 0 and api_source = ${api_source}`
+    const tags = await query(sql)
+    return tags
+  } catch (error) {
+    console.log(error)
+  }
 }
 
 //============================================================
@@ -695,8 +713,8 @@ app.group('/api/v1', (router) => {
 
 //================================================================
 // Run job every 0h5 am everyday
-var job0h5 = new CronJob('5 0 * * *', async function() {
-  await setTagInRawData()    
+var job0h5 = new CronJob('5 0 * * *', async function () {
+  await setTagInRawData()
 }, null, true, 'Asia/Ho_Chi_Minh');
 
 job0h5.start()
