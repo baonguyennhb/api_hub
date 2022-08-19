@@ -39,7 +39,7 @@ module.exports.postAdd = async (req, res) => {
       timestamp_str = moment(start).format('YYYY-MM-DD HH:mm:ss')
 
       let sql2 = `INSERT INTO RawData (timestamp, api_source, metter_id, tag_name, serial, param, tag_id) 
-      Values ( '${timestamp_str}', ${data.apiSource}, '${data.metterId}', 'ABC', ${metter[0].serial}, '${data.paramter}', ${tag[0].id} )`
+      Values ( '${timestamp_str}', ${data.apiSource}, '${data.metterId}', 'ABC', ${metter[0].serial}, '${data.parameter}', ${tag[0].id} )`
       const result2 = await query(sql2)
 
       start = moment(start).add(30, 'minutes')
