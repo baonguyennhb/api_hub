@@ -700,6 +700,7 @@ const tagRouter = require('./Routes/tag.route')
 const deviceTagRouter = require('./Routes/device_tag.route')
 const userRouter = require('./Routes/user.route')
 const apiSourceRouter = require('./Routes/apiSource.route');
+const dataHubRouter = require('./Routes/dataHub.route');
 const { stat } = require('fs');
 
 app.group('/api/v1', (router) => {
@@ -708,6 +709,7 @@ app.group('/api/v1', (router) => {
   router.use('/device', deviceRouter)
   router.use('/tag', tagRouter)
   router.use('/device_tag', deviceTagRouter)
+  router.use('/data-hub', dataHubRouter)
 })
 
 
