@@ -91,7 +91,7 @@ async function ReadMetter() {
     let api_sources = await getApiSource()
 
     let start = moment().startOf('days')
-    if (moment().hour() <= 2) {
+    if (moment().hour() <= 0) {
       start = moment().subtract(2, 'hours').startOf('days')
     }
     console.log(start)
@@ -127,7 +127,7 @@ async function ReadMetter() {
         let timestamp = dataOfAllApiSource[`${apiSource}`].ts
         let tagData = filterDataBySerial.length ? filterDataBySerial[filterDataBySerial.length - 1][`${parameterTag}`] : undefined
         if (tagData !== undefined) {
-          console.log(tagData)
+          //console.log(tagData)
           let dataByScale
           if (dataType === "Number") {
             dataByScale = tagData * scale
@@ -150,12 +150,12 @@ async function ReadMetter() {
       let all_tags = await getTagInRawNeedupdate(api_source.id, start)
       let data_sources = await callAPI(api_source, start)
 
-      console.log('All_tags', all_tags.length)
+      //console.log('All_tags', all_tags.length)
       if (all_tags) {
         for (let j = 0; j < all_tags.length; j++) {
           const tag = all_tags[j];
           //console.log(tag)
-          const result = data_sources.data.find(({ NGAYGIO }) => NGAYGIO === tag.timestamp.toString());
+          const result = data_sources.data.find(({ NGAYGIO, SO_CTO }) => NGAYGIO === tag.timestamp.toString() && SO_CTO == tag.serial.toString());
 
           let _tag = await query(`SELECT * From Tag where metter_id = '${tag.metter_id}' and parameter = '${tag.param}'`)
 
@@ -218,7 +218,7 @@ async function setTagInRawData() {
     let start = moment().startOf('day')
 
     let sql = `SELECT Tag.id as TagId, * FROM Tag 
-                JOIN Metter on Metter.metter_id = Tag.metter_id 
+                JOIN Metter on Metter.metter_id = Tag.metter_id and Metter.api_source = Tag.api_source
               `
     const tags = await query(sql)
 
