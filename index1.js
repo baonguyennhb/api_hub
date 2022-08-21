@@ -27,7 +27,7 @@ const mqttUrl = "mqtt://rabbitmq-001-pub.hz.wise-paas.com.cn:1883"
 const mqttTopicConn = `iot-2/evt/waconn/fmt/${groupId}`
 const mqttTopicCfg = `iot-2/evt/wacfg/fmt/${groupId}`
 const mqttTopicSendata = `iot-2/evt/wadata/fmt/${groupId}`
-const HbtInterval = 5000
+const HbtInterval = 5
 
 var options = {
   port: 1883,
@@ -37,6 +37,35 @@ var options = {
 // Connect MQTT Broker 
 
 const client = mqtt.connect(mqttUrl, options);
+
+// Handle Connect MQTT and Push data
+
+const ConnectionMessage = require("./EdgeSdk/ConnectionMessage")
+const HeartBeatMessage = require("./EdgeSdk/HeartBeatMessage")
+const ConfigTagMessage = require("./EdgeSdk/ConfigTagMesage")
+
+
+client.on("connect", ack => {
+  try {
+    console.log("MQTT Client Connected!")
+    const _connectionMessage = ConnectionMessage(groupId)
+    //const dataConfig = updateTag()
+    client.publish(mqttTopicConn, JSON.stringify(_connectionMessage), { qos: 1, retain: true })
+    console.log("Connect success!")
+    setInterval(sendHeartBeatMessage, HbtInterval * 1000)
+    // Send Data
+    //client.publish(mqttTopicCfg, JSON.stringify(dataConfig))
+    //console.log(" Config tag success!")
+  } catch (error) {
+    console.log(error)
+  }
+})
+
+const sendHeartBeatMessage = () => {
+  const _messageHeartBeat = HeartBeatMessage(groupId)
+  const topic = mqttTopicConn
+  client.publish(topic, JSON.stringify(_messageHeartBeat), { qos: 1, retain: true });
+}
 
 // Handle Call API with 1 api source
 async function callAPI(api_source, start) {
@@ -61,25 +90,6 @@ async function callAPI(api_source, start) {
 
   }
 }
-
-// Handle Connect MQTT and Push data
-
-client.on("connect", ack => {
-  try {
-    console.log("MQTT Client Connected!")
-    const dataConn = connectJson()
-    const dataConfig = updateTag()
-    client.publish(mqttTopicConn, JSON.stringify(dataConn), { qos: 1, retain: true })
-    console.log("Connect success!")
-    setInterval(sendHeartBeatMessage, HbtInterval)
-    // Send Data
-    client.publish(mqttTopicCfg, JSON.stringify(dataConfig))
-    console.log(" Config tag success!")
-  } catch (error) {
-    console.log(error)
-  }
-
-})
 
 //=================================================
 // Read Metter as interval
@@ -167,7 +177,6 @@ async function ReadMetter() {
 
         }
       }
-
     }
     //=====> Insert Raw Data
     console.log("---> Read Data OK", moment().format('HH:mm:ss'))
@@ -265,17 +274,6 @@ async function getTagInRawNeedupdate(api_source, start1) {
 }
 
 //============================================================
-
-const sendHeartBeatMessage = () => {
-  let d = {}
-  d[`${groupId}`] = { "Hbt": 1 }
-  const dataHeartBeat = {
-    "d": d,
-    "ts": Date.now()
-  }
-  const topic = mqttTopicConn
-  client.publish(topic, JSON.stringify(dataHeartBeat), { qos: 1, retain: true });
-}
 
 const connectJson = () => {
   let d = {}
@@ -700,6 +698,7 @@ const tagRouter = require('./Routes/tag.route')
 const deviceTagRouter = require('./Routes/device_tag.route')
 const userRouter = require('./Routes/user.route')
 const apiSourceRouter = require('./Routes/apiSource.route');
+const dataHubRouter = require('./Routes/dataHub.route');
 const { stat } = require('fs');
 
 app.group('/api/v1', (router) => {
@@ -708,6 +707,7 @@ app.group('/api/v1', (router) => {
   router.use('/device', deviceRouter)
   router.use('/tag', tagRouter)
   router.use('/device_tag', deviceTagRouter)
+  router.use('/data-hub', dataHubRouter)
 })
 
 
@@ -724,6 +724,7 @@ setTagInRawData()
 // Check Status API SOURCE
 
 //================================================================
+
 
 
 

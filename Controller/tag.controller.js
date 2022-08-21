@@ -6,8 +6,15 @@ var fsPromises = require('fs').promises;
 module.exports.GetList = async (req, res) => {
   try {
     const { metterId } = req.query
-    let sql = 'SELECT * FROM Tag WHERE metter_id=?'
-    let params = [metterId]
+    let sql
+    let params = []
+    if (metterId) {
+      sql = 'SELECT * FROM Tag WHERE metter_id=?'
+      params = [metterId]
+    } else {
+      sql = 'SELECT * FROM Tag'
+      params = []
+    }
     const devices = await query(sql, params)
     const dataSend = {
       code: 200,
