@@ -44,12 +44,12 @@ module.exports.AddTag = async (req, res) => {
         let dataSend = {
             "code": 200,
             "message": "OK",
-            "data": "Add Success"
+            "data": "Add Tag Successfully"
         }
         res.status(200).send(dataSend)
     } catch (error) {
         if (error.errno === 19) {
-            res.status(400).send({
+            res.status(200).send({
                 "code": 400,
                 "message": "Error",
                 "error": "Tag have existed"
@@ -57,3 +57,37 @@ module.exports.AddTag = async (req, res) => {
         }
     }
 }
+module.exports.GetListTag = async (req, res) => {
+    try {
+        const sql = "SELECT * FROM MqttTag"
+        const tags = await query(sql)
+        const dataSend = {
+            "code": 200,
+            "message": "OK",
+            "data": tags
+        }
+        res.status(200).send(dataSend)
+    } catch (error) {
+        
+    }
+}
+
+module.exports.delDelete = async (req, res) => {
+    try {
+      let id = req.query.id
+
+      let sql = `DELETE FROM MqttTag where id = ${id}`
+
+      const mqttTag = await query(sql)
+      const dataSend = {
+        code: 200,
+        message: "OK",
+        data: mqttTag
+      }
+      res.status(200).send(dataSend)
+    } catch (error) {
+      console.log(error)
+    }
+  }
+
+
