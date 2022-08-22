@@ -1,4 +1,4 @@
-const ConfigTagMessage = (tags, groupId) => {
+const ConfigTagMessage = (groupId, tags) => {
     let d = {}
     let Utg = {}
     for (let i = 0; i < tags.length; i++) {

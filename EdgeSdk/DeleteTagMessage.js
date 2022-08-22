@@ -13,9 +13,29 @@ const DeleteTag = (tag, groupId, heatbeat) => {
     }
     const dataConfig = {
         "d": d,
-        "ts": Date.now()
+        "ts": new Date().toISOString()
     }
     return dataConfig
 }
 
-module.exports = DeleteTag
+const DeleteAllTag = (groupId, heatbeat) => {
+    let d = {}
+    d[`${groupId}`] = {
+        "TID": 1,
+        "Hbt": heatbeat,
+        "PID": 1,
+        "BID": 0,
+        "Del": 1
+    }
+    const dataConfig = {
+        "d": d,
+        "ts": new Date().toISOString()
+    }
+    return dataConfig
+}
+
+module.exports = {
+    DeleteTag: DeleteTag,
+    DeleteAllTag : DeleteAllTag
+}
+

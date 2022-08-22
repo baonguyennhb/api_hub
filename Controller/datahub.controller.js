@@ -72,22 +72,6 @@ module.exports.GetListTag = async (req, res) => {
     }
 }
 
-module.exports.delDelete = async (req, res) => {
-    try {
-      let id = req.query.id
 
-      let sql = `DELETE FROM MqttTag where id = ${id}`
-
-      const mqttTag = await query(sql)
-      const dataSend = {
-        code: 200,
-        message: "OK",
-        data: mqttTag
-      }
-      res.status(200).send(dataSend)
-    } catch (error) {
-      console.log(error)
-    }
-  }
 
 
