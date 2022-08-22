@@ -22,21 +22,17 @@ app.listen(port, () => {
 })
 
 // Variable
-const groupId = 'scada_qQ2N60h1DmL'
-const mqttUrl = "mqtt://rabbitmq-001-pub.hz.wise-paas.com.cn:1883"
-const mqttTopicConn = `iot-2/evt/waconn/fmt/${groupId}`
-const mqttTopicCfg = `iot-2/evt/wacfg/fmt/${groupId}`
-const mqttTopicSendata = `iot-2/evt/wadata/fmt/${groupId}`
-const HbtInterval = 5
+let groupId = 'scada_qQ2N60h1DmL'
+let mqttUrl = "mqtt://rabbitmq-001-pub.hz.wise-paas.com.cn:1883"
+let mqttTopicConn = `iot-2/evt/waconn/fmt/${groupId}`
+let mqttTopicCfg = `iot-2/evt/wacfg/fmt/${groupId}`
+let mqttTopicSendata = `iot-2/evt/wadata/fmt/${groupId}`
+let HbtInterval = 5
 
-var options = {
-  port: 1883,
-  username: 'Goy2waYPAGQP:n3Q78J2BBKeK',
-  password: 'CVemCimzm0duGLr6OnvJ',
-};
+
 // Connect MQTT Broker 
 
-const client = mqtt.connect(mqttUrl, options);
+let client
 
 // Handle Connect MQTT and Push data
 
@@ -189,6 +185,31 @@ async function ReadMetter() {
 }
 
 ReadMetter()
+
+//=================================================
+// Init
+async function Init(){
+  let config = await query(`SELECT * FROM DataHub`)
+  let options = {
+    port: 1883,
+    username: config[0].username, //     'Goy2waYPAGQP:n3Q78J2BBKeK',
+    password: config[0].password, //'CVemCimzm0duGLr6OnvJ',
+  };
+  
+  groupId = config[0].group_id //'scada_qQ2N60h1DmL'
+  mqttUrl = "mqtt://" + config[0].host + ":" + config[0].port
+  mqttTopicConn = `iot-2/evt/waconn/fmt/${groupId}`
+  mqttTopicCfg = `iot-2/evt/wacfg/fmt/${groupId}`
+  mqttTopicSendata = `iot-2/evt/wadata/fmt/${groupId}`
+  HbtInterval = 5
+
+
+
+  client = mqtt.connect(mqttUrl, options);
+}
+
+
+//==================================================
 
 async function getMetterInterval() {
   try {
@@ -540,7 +561,6 @@ const deleteDevice = (serial) => {
   }
   return dataConfig
 }
-
 // API TESTING
 
 app.get('/cfg', async (req, res) => {
