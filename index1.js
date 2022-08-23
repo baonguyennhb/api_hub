@@ -40,22 +40,116 @@ const ConnectionMessage = require("./EdgeSdk/ConnectionMessage")
 const HeartBeatMessage = require("./EdgeSdk/HeartBeatMessage")
 const ConfigTagMessage = require("./EdgeSdk/ConfigTagMesage")
 
+//=================================================
+// Init
+async function Init(){
+  let config = await query(`SELECT * FROM DataHub`)
+  let options = {
+    port: 1883,
+    username: config[0].username, //     'Goy2waYPAGQP:n3Q78J2BBKeK',
+    password: config[0].password, //    'CVemCimzm0duGLr6OnvJ',
+    reconnectPeriod: 2000,
+    connectTimeout: 1000
+  };
+  
+  groupId = config[0].group_id //'scada_qQ2N60h1DmL'
+  mqttUrl = "mqtt://" + config[0].host + ":" + config[0].port
+  mqttTopicConn = `iot-2/evt/waconn/fmt/${groupId}`
+  mqttTopicCfg = `iot-2/evt/wacfg/fmt/${groupId}`
+  mqttTopicSendata = `iot-2/evt/wadata/fmt/${groupId}`
+  HbtInterval = config[0].heart_beat
 
-client.on("connect", ack => {
-  try {
-    console.log("MQTT Client Connected!")
-    const _connectionMessage = ConnectionMessage(groupId)
-    //const dataConfig = updateTag()
-    client.publish(mqttTopicConn, JSON.stringify(_connectionMessage), { qos: 1, retain: true })
-    console.log("Connect success!")
-    setInterval(sendHeartBeatMessage, HbtInterval * 1000)
-    // Send Data
-    //client.publish(mqttTopicCfg, JSON.stringify(dataConfig))
-    //console.log(" Config tag success!")
-  } catch (error) {
-    console.log(error)
-  }
-})
+  client = mqtt.connect(mqttUrl, options);
+  
+  console.log(options, config[0])
+
+  client.on("connect", ack => {
+    try {
+      console.log("MQTT Client Connected!")
+      const _connectionMessage = ConnectionMessage(groupId)
+      //const dataConfig = updateTag()
+      client.publish(mqttTopicConn, JSON.stringify(_connectionMessage), { qos: 1, retain: true })
+      console.log("Connect success!")
+      setInterval(sendHeartBeatMessage, HbtInterval * 1000)
+      // Send Data
+      //client.publish(mqttTopicCfg, JSON.stringify(dataConfig))
+      //console.log(" Config tag success!")
+      console.log("Connected")
+    } catch (error) {
+      console.log(error)
+    }
+  })
+  //==================================================
+  client.on("reconnect", ack => {
+    try {
+      console.log("MQTT Reconnect Connected!")
+      
+    } catch (error) {
+      console.log(error)
+    }
+  })
+  client.on("error", async function(ack){
+    try {
+      console.log("MQTT Error!", ack.message)
+
+      let config = await query(`SELECT * FROM DataHub`)
+      let options = {
+        port: 1883,
+        username: config[0].username, //     'Goy2waYPAGQP:n3Q78J2BBKeK',
+        password: config[0].password, //    'CVemCimzm0duGLr6OnvJ',
+        reconnectPeriod: 2000,
+        connectTimeout: 1000
+      };
+      
+      groupId = config[0].group_id //'scada_qQ2N60h1DmL'
+      mqttUrl = "mqtt://" + config[0].host + ":" + config[0].port
+      mqttTopicConn = `iot-2/evt/waconn/fmt/${groupId}`
+      mqttTopicCfg = `iot-2/evt/wacfg/fmt/${groupId}`
+      mqttTopicSendata = `iot-2/evt/wadata/fmt/${groupId}`
+      HbtInterval = config[0].heart_beat
+
+      await delay(2000)
+      client.reconnect(mqttUrl, options)
+
+    } catch (error) {
+      console.log(error)
+    }
+  })
+  client.on("close", ack => {
+    try {
+      console.log("MQTT close!", ack.message)
+      
+    } catch (error) {
+      console.log(error)
+    }
+  })
+  client.on("disconnect", ack => {
+    try {
+      console.log("MQTT disconnect!", ack.message)
+      
+    } catch (error) {
+      console.log(error)
+    }
+  })
+  client.on("offline", ack => {
+    try {
+      console.log("MQTT offline!", ack.message)
+      
+    } catch (error) {
+      console.log(error)
+    }
+  })
+  //==================================================
+
+  
+}
+
+Init()
+
+
+
+
+
 
 const sendHeartBeatMessage = () => {
   const _messageHeartBeat = HeartBeatMessage(groupId)
@@ -186,30 +280,7 @@ async function ReadMetter() {
 
 ReadMetter()
 
-//=================================================
-// Init
-async function Init(){
-  let config = await query(`SELECT * FROM DataHub`)
-  let options = {
-    port: 1883,
-    username: config[0].username, //     'Goy2waYPAGQP:n3Q78J2BBKeK',
-    password: config[0].password, //'CVemCimzm0duGLr6OnvJ',
-  };
-  
-  groupId = config[0].group_id //'scada_qQ2N60h1DmL'
-  mqttUrl = "mqtt://" + config[0].host + ":" + config[0].port
-  mqttTopicConn = `iot-2/evt/waconn/fmt/${groupId}`
-  mqttTopicCfg = `iot-2/evt/wacfg/fmt/${groupId}`
-  mqttTopicSendata = `iot-2/evt/wadata/fmt/${groupId}`
-  HbtInterval = 5
 
-
-
-  client = mqtt.connect(mqttUrl, options);
-}
-
-
-//==================================================
 
 async function getMetterInterval() {
   try {
@@ -720,6 +791,7 @@ const userRouter = require('./Routes/user.route')
 const apiSourceRouter = require('./Routes/apiSource.route');
 const dataHubRouter = require('./Routes/dataHub.route');
 const { stat } = require('fs');
+const delay = require('delay');
 
 app.group('/api/v1', (router) => {
   router.use('/user', userRouter)
