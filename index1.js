@@ -8,6 +8,7 @@ var bodyParser = require('body-parser')
 const common = require('./Common/query')
 const query = common.query
 const mqtt = require('mqtt');
+var EventEmitter = require('events')
 const CronJob = require('cron').CronJob;
 
 
@@ -23,12 +24,12 @@ app.listen(port, () => {
 
 // Variable
 
-const groupId = 'scada_5dAWAnEpGXe'
-const mqttUrl = "mqtt://rabbitmq-001-pub.hz.wise-paas.com.cn:1883"
-const mqttTopicConn = `iot-2/evt/waconn/fmt/${groupId}`
-const mqttTopicCfg = `iot-2/evt/wacfg/fmt/${groupId}`
-const mqttTopicSendata = `iot-2/evt/wadata/fmt/${groupId}`
-const HbtInterval = 5
+let groupId //'scada_5dAWAnEpGXe'
+let mqttUrl  //"mqtt://rabbitmq-001-pub.hz.wise-paas.com.cn:1883"
+let mqttTopicConn = `iot-2/evt/waconn/fmt/${groupId}`
+let mqttTopicCfg = `iot-2/evt/wacfg/fmt/${groupId}`
+let mqttTopicSendata = `iot-2/evt/wadata/fmt/${groupId}`
+let HbtInterval = 5
 
 var options = {
   port: 1883,
@@ -39,6 +40,9 @@ var options = {
 // Connect MQTT Broker 
 
 let client
+let is_data_hub_connected = false
+let is_error = false
+var event = new EventEmitter()
 
 // Handle Connect MQTT and Push data
 
@@ -46,6 +50,7 @@ const ConnectionMessage = require("./EdgeSdk/ConnectionMessage")
 const HeartBeatMessage = require("./EdgeSdk/HeartBeatMessage")
 const ConfigTagMessage = require("./EdgeSdk/ConfigTagMesage")
 const DeleteTagConfigMessage = require("./EdgeSdk/DeleteTagMessage")
+const ValueTagMessage = require("./EdgeSdk/ValueTagMesage")
 
 //=================================================
 // Init
@@ -70,26 +75,24 @@ async function Init() {
 
   console.log(options, config[0])
 
-  client.on("connect", ack => {
+  client.on("connect", async ack => {
     try {
       console.log("MQTT Client Connected!")
       const _connectionMessage = ConnectionMessage(groupId)
       client.publish(mqttTopicConn, JSON.stringify(_connectionMessage), { qos: 1, retain: false })
-      console.log("Connect success!")
+      // console.log("Connect success!")
       setInterval(sendHeartBeatMessage, HbtInterval * 1000)
       // Send Tag Config
       sendTagConfigMessage()
       console.log(" Config tag success!")
-      console.log("Connected")
     } catch (error) {
       console.log(error)
     }
   })
   //==================================================
-  client.on("reconnect", ack => {
+  client.on("reconnect", async ack => {
     try {
-      console.log("MQTT Reconnect Connected!")
-
+      console.log("MQTT Reconnect !")
     } catch (error) {
       console.log(error)
     }
@@ -97,25 +100,26 @@ async function Init() {
   client.on("error", async function (ack) {
     try {
       console.log("MQTT Error!", ack.message)
+      // let config = await query(`SELECT * FROM DataHub`)
+      // let options = {
+      //   port: 1883,
+      //   username: config[0].username, //     'Goy2waYPAGQP:n3Q78J2BBKeK',
+      //   password: config[0].password, //    'CVemCimzm0duGLr6OnvJ',
+      //   reconnectPeriod: 2000,
+      //   connectTimeout: 5000
+      // };
 
-      let config = await query(`SELECT * FROM DataHub`)
-      let options = {
-        port: 1883,
-        username: config[0].username, //     'Goy2waYPAGQP:n3Q78J2BBKeK',
-        password: config[0].password, //    'CVemCimzm0duGLr6OnvJ',
-        reconnectPeriod: 2000,
-        connectTimeout: 1000
-      };
+      // groupId = config[0].group_id //'scada_qQ2N60h1DmL'
+      // mqttUrl = "mqtt://" + config[0].host + ":" + config[0].port
+      // mqttTopicConn = `iot-2/evt/waconn/fmt/${groupId}`
+      // mqttTopicCfg = `iot-2/evt/wacfg/fmt/${groupId}`
+      // mqttTopicSendata = `iot-2/evt/wadata/fmt/${groupId}`
+      // HbtInterval = config[0].heart_beat
 
-      groupId = config[0].group_id //'scada_qQ2N60h1DmL'
-      mqttUrl = "mqtt://" + config[0].host + ":" + config[0].port
-      mqttTopicConn = `iot-2/evt/waconn/fmt/${groupId}`
-      mqttTopicCfg = `iot-2/evt/wacfg/fmt/${groupId}`
-      mqttTopicSendata = `iot-2/evt/wadata/fmt/${groupId}`
-      HbtInterval = config[0].heart_beat
+      // console.log(config[0])
 
-      await delay(2000)
-      client.reconnect(mqttUrl, options)
+      // await delay(2000)
+      // client.reconnect(mqttUrl, options)
 
     } catch (error) {
       console.log(error)
@@ -123,34 +127,40 @@ async function Init() {
   })
   client.on("close", ack => {
     try {
-      console.log("MQTT close!", ack.message)
-
+      console.log("MQTT close!", ack?.message)
     } catch (error) {
       console.log(error)
     }
   })
   client.on("disconnect", ack => {
     try {
-      console.log("MQTT disconnect!", ack.message)
-
+      console.log("MQTT disconnect!", ack?.message)
     } catch (error) {
       console.log(error)
     }
   })
   client.on("offline", ack => {
     try {
-      console.log("MQTT offline!", ack.message)
-
+      console.log("MQTT offline!", ack?.message)
     } catch (error) {
       console.log(error)
     }
   })
+  console.log(client.connected)
   //==================================================
 
 
 }
 
-Init()
+//Init()
+
+async function PublishDataHub() {
+  let data_hub_cgf = await getDataHubConfig()
+  let nextPublish = data_hub_cgf.interval * 1000
+  SendDataTagToDataHub()
+  setTimeout(PublishDataHub, nextPublish)
+}
+PublishDataHub()
 
 
 async function getDataHubConfig() {
@@ -181,6 +191,32 @@ const SendDeleteConfigTag = async (tag, groupId, heatbeat) => {
   const topic = mqttTopicCfg
   client.publish(topic, JSON.stringify(_messageDeleteConfigTag), { qos: 1, retain: false });
 }
+
+const SendDataTagToDataHub = async () => {
+  try {
+    //console.log(moment().format("HH:mm:ss"))
+    const allTag = await getMqttTag()
+    var result_array_tag_id = [];
+    for (var i = 0; i < allTag.length; i++) {
+      result_array_tag_id[i] = allTag[i].id;
+    }
+    let sqlSelectTag = `select * from Tag where id IN (${result_array_tag_id.toString()})`
+    let allTagWithData = await query(sqlSelectTag)
+    allTagWithData = allTagWithData.map(value => {
+      return {
+        name: `${value.metter_id}:${value.name}`,
+        last_value: value?.data_type === "Number" ? parseFloat(value.last_value) : value.last_value
+      }
+    })
+    const topic = mqttTopicSendata
+    const valueTagMessage = ValueTagMessage(allTagWithData, groupId)
+    client.publish(topic, JSON.stringify(valueTagMessage), { qos: 1, retain: false });
+  } catch (error) {
+    console.log(error)
+  }
+
+}
+
 
 const getMqttTag = async () => {
   let sql = "SELECT * FROM MqttTag"
@@ -448,6 +484,11 @@ const DeleteMqttTag = async (req, res) => {
 
 app.get("/api/v1/data-hub/upload-config", async (req, res) => {
   try {
+    if (client) {
+      client.end()
+    }
+    await Init()
+
     await sendTagConfigMessage()
     const dataSend = {
       "code": 200,
@@ -455,6 +496,7 @@ app.get("/api/v1/data-hub/upload-config", async (req, res) => {
       "data": "Config tag successfully!"
     }
     res.status(200).send(dataSend)
+
   } catch (error) {
     console.log(error)
   }
