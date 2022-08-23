@@ -78,6 +78,7 @@ async function Init() {
   client.on("connect", async ack => {
     try {
       console.log("MQTT Client Connected!")
+      is_error = false
       const _connectionMessage = ConnectionMessage(groupId)
       client.publish(mqttTopicConn, JSON.stringify(_connectionMessage), { qos: 1, retain: false })
       // console.log("Connect success!")
@@ -100,6 +101,7 @@ async function Init() {
   client.on("error", async function (ack) {
     try {
       console.log("MQTT Error!", ack.message)
+      is_error = true
       // let config = await query(`SELECT * FROM DataHub`)
       // let options = {
       //   port: 1883,
@@ -146,7 +148,6 @@ async function Init() {
       console.log(error)
     }
   })
-  console.log(client.connected)
   //==================================================
 
 
@@ -172,7 +173,7 @@ async function getDataHubConfig() {
 const sendHeartBeatMessage = () => {
   const _messageHeartBeat = HeartBeatMessage(groupId)
   const topic = mqttTopicConn
-  client.publish(topic, JSON.stringify(_messageHeartBeat), { qos: 1, retain: false });
+  client?.publish(topic, JSON.stringify(_messageHeartBeat), { qos: 1, retain: false });
 }
 
 const sendTagConfigMessage = async () => {
@@ -181,7 +182,7 @@ const sendTagConfigMessage = async () => {
   const allTag = await getMqttTag()
   const _messageConfigTag = ConfigTagMessage(groupId, allTag)
   const topic = mqttTopicCfg
-  client.publish(topic, JSON.stringify(_messageConfigTag), { qos: 1, retain: false });
+  client?.publish(topic, JSON.stringify(_messageConfigTag), { qos: 1, retain: false });
 }
 
 const SendDeleteConfigTag = async (tag, groupId, heatbeat) => {
@@ -189,7 +190,7 @@ const SendDeleteConfigTag = async (tag, groupId, heatbeat) => {
   console.log("Delete!")
   console.log(_messageDeleteConfigTag)
   const topic = mqttTopicCfg
-  client.publish(topic, JSON.stringify(_messageDeleteConfigTag), { qos: 1, retain: false });
+  client?.publish(topic, JSON.stringify(_messageDeleteConfigTag), { qos: 1, retain: false });
 }
 
 const SendDataTagToDataHub = async () => {
@@ -483,9 +484,9 @@ const DeleteMqttTag = async (req, res) => {
 }
 
 app.post("/api/v1/data-hub/upload-config", async (req, res) => {
-  const {data} = req.body
-  const updatedDataHub = await query(`UPDATE DataHub SET group_id = '${data.group_id}', host = '${data.host}', port = '${data.port}', username = '${data.username}', password = '${data.password}' interval = '${data.interval}'`)
   try {
+    const data = req.body
+    const updatedDataHub = await query(`UPDATE DataHub SET group_id = '${data.group_id}', host = '${data.host}', port = '${data.port}', username = '${data.username}', password = '${data.password}', interval = '${data.interval}'`)
     if (client) {
       client.end()
     }

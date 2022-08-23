@@ -36,8 +36,11 @@ module.exports.AddTag = async (req, res) => {
     try {
         const tagList = req.body.tags
         console.log(tagList)
-        for (let i = 0; i < tagList.length; i++) {
-            tagId = tagList[i]?.id
+        const tagsInMqttTagTable = await query("SELECT * FROM MqttTag")
+        const diffId = tagList.filter(({ id: id1 }) => !tagsInMqttTagTable.some(({ id: id2 }) => id2 === id1));
+        console.log(diffId)
+        for (let i = 0; i < diffId.length; i++) {
+            tagId = diffId[i]?.id
             let tagFromTagTable = await query(`SELECT * FROM Tag WHERE id='${tagId}'`)
             let type = tagFromTagTable[0].data_type === "Number" ? "Analog" : "Text"
             let addTagToMqttTagTable = await query(`INSERT INTO MqttTag( id, name, tag_type ) VALUES ( ${tagFromTagTable[0].id} , '${tagFromTagTable[0].metter_id}:${tagFromTagTable[0].name}', '${type}') `)
