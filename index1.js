@@ -22,13 +22,19 @@ app.listen(port, () => {
 })
 
 // Variable
-let groupId = 'scada_qQ2N60h1DmL'
-let mqttUrl = "mqtt://rabbitmq-001-pub.hz.wise-paas.com.cn:1883"
-let mqttTopicConn = `iot-2/evt/waconn/fmt/${groupId}`
-let mqttTopicCfg = `iot-2/evt/wacfg/fmt/${groupId}`
-let mqttTopicSendata = `iot-2/evt/wadata/fmt/${groupId}`
-let HbtInterval = 5
 
+const groupId = 'scada_5dAWAnEpGXe'
+const mqttUrl = "mqtt://rabbitmq-001-pub.hz.wise-paas.com.cn:1883"
+const mqttTopicConn = `iot-2/evt/waconn/fmt/${groupId}`
+const mqttTopicCfg = `iot-2/evt/wacfg/fmt/${groupId}`
+const mqttTopicSendata = `iot-2/evt/wadata/fmt/${groupId}`
+const HbtInterval = 5
+
+var options = {
+  port: 1883,
+  username: 'Goy2waYPAGQP:d1ejmm44L8QV',
+  password: 'uOh4z8bvRPyIVHBlIiXI',
+};
 
 // Connect MQTT Broker 
 
@@ -39,6 +45,7 @@ let client
 const ConnectionMessage = require("./EdgeSdk/ConnectionMessage")
 const HeartBeatMessage = require("./EdgeSdk/HeartBeatMessage")
 const ConfigTagMessage = require("./EdgeSdk/ConfigTagMesage")
+const DeleteTagConfigMessage = require("./EdgeSdk/DeleteTagMessage")
 
 //=================================================
 // Init
@@ -147,14 +154,39 @@ async function Init(){
 Init()
 
 
-
-
-
+async function getDataHubConfig() {
+  let sql = "SELECT * FROM DataHub"
+  const data_hub_cgf = await query(sql)
+  return data_hub_cgf[0]
+}
 
 const sendHeartBeatMessage = () => {
   const _messageHeartBeat = HeartBeatMessage(groupId)
   const topic = mqttTopicConn
-  client.publish(topic, JSON.stringify(_messageHeartBeat), { qos: 1, retain: true });
+  client.publish(topic, JSON.stringify(_messageHeartBeat), { qos: 1, retain: false });
+}
+
+const sendTagConfigMessage = async () => {
+  const data_hub_cgf = await getDataHubConfig()
+  const groupId = data_hub_cgf.group_id
+  const allTag = await getMqttTag()
+  const _messageConfigTag = ConfigTagMessage(groupId, allTag)
+  const topic = mqttTopicCfg
+  client.publish(topic, JSON.stringify(_messageConfigTag), { qos: 1, retain: false });
+}
+
+const SendDeleteConfigTag = async (tag, groupId, heatbeat) => {
+  const _messageDeleteConfigTag = DeleteTagConfigMessage.DeleteTag(tag, groupId, heatbeat)
+  console.log("Delete!")
+  console.log(_messageDeleteConfigTag)
+  const topic = mqttTopicCfg
+  client.publish(topic, JSON.stringify(_messageDeleteConfigTag), { qos: 1, retain: false });
+}
+
+const getMqttTag = async () => {
+  let sql = "SELECT * FROM MqttTag"
+  const allTag = await query(sql)
+  return allTag
 }
 
 // Handle Call API with 1 api source
@@ -223,7 +255,7 @@ async function ReadMetter() {
         let dataType = allTags[i].data_type
         let scale = allTags[i].scale
         let metterId = allTags[i].metter_id
-        let filterDataBySerial = dataOfAllApiSource[`${apiSource}`].data.filter(value => value.SO_CTO === serialMetter.toString())
+        let filterDataBySerial = dataOfAllApiSource[`${apiSource}`].data?.filter(value => value.SO_CTO === serialMetter.toString())
         let timestamp = dataOfAllApiSource[`${apiSource}`].ts
         let tagData = filterDataBySerial.length ? filterDataBySerial[filterDataBySerial.length - 1][`${parameterTag}`] : undefined
         if (tagData !== undefined) {
@@ -366,17 +398,6 @@ async function getTagInRawNeedupdate(api_source, start1) {
 }
 
 //============================================================
-
-const connectJson = () => {
-  let d = {}
-  d[`${groupId}`] = { "Con": 1 }
-  const dataConn = {
-    "d": d,
-    "ts": Date.now()
-  }
-  return dataConn
-}
-
 
 const updateTag = () => {
   let d = {}
@@ -790,6 +811,7 @@ const deviceTagRouter = require('./Routes/device_tag.route')
 const userRouter = require('./Routes/user.route')
 const apiSourceRouter = require('./Routes/apiSource.route');
 const dataHubRouter = require('./Routes/dataHub.route');
+
 const { stat } = require('fs');
 const delay = require('delay');
 
@@ -801,6 +823,57 @@ app.group('/api/v1', (router) => {
   router.use('/device_tag', deviceTagRouter)
   router.use('/data-hub', dataHubRouter)
 })
+
+// Delete Tag Mqtt
+
+app.delete('/api/v1/data-hub/remove/tag', (req, res) => {
+  DeleteMqttTag(req, res)
+})
+
+const DeleteMqttTag = async (req, res) => {
+  try {
+    let id = req.query.id
+
+    let tagDelete = await query(`SELECT * FROM MqttTag where id = ${id}`)
+
+    SendDeleteConfigTag(tagDelete[0], groupId, 5)
+
+    let sql = `DELETE FROM MqttTag where id = ${id}`
+
+    const mqttTag = await query(sql)
+
+    const dataSend = {
+      code: 200,
+      message: "OK",
+      data: mqttTag
+    }
+    res.status(200).send(dataSend)
+  } catch (error) {
+    console.log(error)
+  }
+}
+
+app.get("/delete-all", (req, res) => {
+  const _messageDeleteConfigTag = DeleteTagConfigMessage.DeleteAllTag(groupId, 5)
+  console.log(_messageDeleteConfigTag)
+  const topic = mqttTopicCfg
+  client.publish(topic, JSON.stringify(_messageDeleteConfigTag), { qos: 1, retain: false });
+})
+
+app.get("/api/v1/data-hub/upload-config", async (req, res) => {
+  try {
+    await sendTagConfigMessage()
+    const dataSend = {
+      "code": 200,
+      "message": "OK",
+      "data": "Config tag successfully!"
+    }
+    res.status(200).send(dataSend)
+  } catch (error) {
+    console.log(error)
+  }
+})
+
 
 
 //================================================================

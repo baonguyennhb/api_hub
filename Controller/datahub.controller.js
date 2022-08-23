@@ -39,7 +39,8 @@ module.exports.AddTag = async (req, res) => {
         for (let i = 0; i < tagList.length; i++) {
             tagId = tagList[i]?.id
             let tagFromTagTable = await query(`SELECT * FROM Tag WHERE id='${tagId}'`)
-            let addTagToMqttTagTable = await query(`INSERT INTO MqttTag( id, name ) VALUES ( ${tagFromTagTable[0].id} , '${tagFromTagTable[0].metter_id}:${tagFromTagTable[0].name}') `)
+            let type = tagFromTagTable[0].data_type === "Number" ? "Analog" : "Text"
+            let addTagToMqttTagTable = await query(`INSERT INTO MqttTag( id, name, tag_type ) VALUES ( ${tagFromTagTable[0].id} , '${tagFromTagTable[0].metter_id}:${tagFromTagTable[0].name}', '${type}') `)
         }
         let dataSend = {
             "code": 200,
@@ -72,22 +73,6 @@ module.exports.GetListTag = async (req, res) => {
     }
 }
 
-module.exports.delDelete = async (req, res) => {
-    try {
-      let id = req.query.id
 
-      let sql = `DELETE FROM MqttTag where id = ${id}`
-
-      const mqttTag = await query(sql)
-      const dataSend = {
-        code: 200,
-        message: "OK",
-        data: mqttTag
-      }
-      res.status(200).send(dataSend)
-    } catch (error) {
-      console.log(error)
-    }
-  }
 
 
