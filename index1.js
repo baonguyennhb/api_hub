@@ -22,8 +22,8 @@ app.listen(port, () => {
 })
 
 // Variable
-const groupId = 'scada_UzVa32VanG4I'
-const mqttUrl = "mqtt://10.129.167.251:1883"
+const groupId = 'scada_5dAWAnEpGXe'
+const mqttUrl = "mqtt://rabbitmq-001-pub.hz.wise-paas.com.cn:1883"
 const mqttTopicConn = `iot-2/evt/waconn/fmt/${groupId}`
 const mqttTopicCfg = `iot-2/evt/wacfg/fmt/${groupId}`
 const mqttTopicSendata = `iot-2/evt/wadata/fmt/${groupId}`
@@ -31,8 +31,8 @@ const HbtInterval = 5
 
 var options = {
   port: 1883,
-  username: 'Bbql3pmm5weM:dgqMkW08KwQb',
-  password: 'FFchKM7La1sHs2QsRzzu',
+  username: 'Goy2waYPAGQP:d1ejmm44L8QV',
+  password: 'uOh4z8bvRPyIVHBlIiXI',
 };
 // Connect MQTT Broker 
 
@@ -85,7 +85,9 @@ const sendTagConfigMessage = async () => {
 }
 
 const SendDeleteConfigTag = async (tag, groupId, heatbeat) => {
-  const _messageDeleteConfigTag = DeleteTagConfigMessage(tag, groupId, heatbeat)
+  const _messageDeleteConfigTag = DeleteTagConfigMessage.DeleteTag(tag, groupId, heatbeat)
+  console.log("Delete!")
+  console.log(_messageDeleteConfigTag)
   const topic = mqttTopicCfg
   client.publish(topic, JSON.stringify(_messageDeleteConfigTag), { qos: 1, retain: false });
 }
@@ -162,7 +164,7 @@ async function ReadMetter() {
         let dataType = allTags[i].data_type
         let scale = allTags[i].scale
         let metterId = allTags[i].metter_id
-        let filterDataBySerial = dataOfAllApiSource[`${apiSource}`].data.filter(value => value.SO_CTO === serialMetter.toString())
+        let filterDataBySerial = dataOfAllApiSource[`${apiSource}`].data?.filter(value => value.SO_CTO === serialMetter.toString())
         let timestamp = dataOfAllApiSource[`${apiSource}`].ts
         let tagData = filterDataBySerial.length ? filterDataBySerial[filterDataBySerial.length - 1][`${parameterTag}`] : undefined
         if (tagData !== undefined) {
@@ -737,11 +739,13 @@ const DeleteMqttTag = async (req, res) => {
   try {
     let id = req.query.id
 
+    let tagDelete = await query(`SELECT * FROM MqttTag where id = ${id}`)
+
+    SendDeleteConfigTag(tagDelete[0], groupId, 5)
+
     let sql = `DELETE FROM MqttTag where id = ${id}`
 
     const mqttTag = await query(sql)
-
-    //SendDeleteConfigTag(mqttTag[0], groupId, 5)
 
     const dataSend = {
       code: 200,
@@ -759,6 +763,20 @@ app.get("/delete-all", (req, res) => {
   console.log(_messageDeleteConfigTag)
   const topic = mqttTopicCfg
   client.publish(topic, JSON.stringify(_messageDeleteConfigTag), { qos: 1, retain: false });
+})
+
+app.get("/api/v1/data-hub/upload-config", async (req, res) => {
+  try {
+    await sendTagConfigMessage()
+    const dataSend = {
+      "code": 200,
+      "message": "OK",
+      "data": "Config tag successfully!"
+    }
+    res.status(200).send(dataSend)
+  } catch (error) {
+    console.log(error)
+  }
 })
 
 

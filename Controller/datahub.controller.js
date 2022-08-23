@@ -39,7 +39,8 @@ module.exports.AddTag = async (req, res) => {
         for (let i = 0; i < tagList.length; i++) {
             tagId = tagList[i]?.id
             let tagFromTagTable = await query(`SELECT * FROM Tag WHERE id='${tagId}'`)
-            let addTagToMqttTagTable = await query(`INSERT INTO MqttTag( id, name ) VALUES ( ${tagFromTagTable[0].id} , '${tagFromTagTable[0].metter_id}:${tagFromTagTable[0].name}') `)
+            let type = tagFromTagTable[0].data_type === "Number" ? "Analog" : "Text"
+            let addTagToMqttTagTable = await query(`INSERT INTO MqttTag( id, name, tag_type ) VALUES ( ${tagFromTagTable[0].id} , '${tagFromTagTable[0].metter_id}:${tagFromTagTable[0].name}', '${type}') `)
         }
         let dataSend = {
             "code": 200,

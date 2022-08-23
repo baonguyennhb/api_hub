@@ -4,7 +4,7 @@ const DeleteTag = (tag, groupId, heatbeat) => {
     DTg[`${tag.name}`] = 1
     d[`${groupId}`] = {
         "TID": 1,
-        "Dsc": tag.description,
+        "Dsc": tag.name,
         "Hbt": heatbeat,
         "PID": 1,
         "BID": 0,
