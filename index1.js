@@ -73,7 +73,7 @@ async function Init() {
 
   client = mqtt.connect(mqttUrl, options);
 
-  console.log(options, config[0])
+  //console.log(options, config[0])
 
   client.on("connect", async ack => {
     try {
@@ -482,7 +482,9 @@ const DeleteMqttTag = async (req, res) => {
   }
 }
 
-app.get("/api/v1/data-hub/upload-config", async (req, res) => {
+app.post("/api/v1/data-hub/upload-config", async (req, res) => {
+  const {data} = req.body
+  const updatedDataHub = await query(`UPDATE DataHub SET group_id = '${data.group_id}', host = '${data.host}', port = '${data.port}', username = '${data.username}', password = '${data.password}' interval = '${data.interval}'`)
   try {
     if (client) {
       client.end()
