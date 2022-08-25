@@ -245,7 +245,7 @@ async function callAPI(api_source, start) {
       ts: moment().format("YYYY-MM-DD HH:mm:ss")
     }
   } catch (error) {
-
+    console.log(error)
   }
 }
 
@@ -294,8 +294,8 @@ async function ReadMetter() {
         let filterDataBySerial = dataOfAllApiSource[`${apiSource}`].data?.filter(value => value.SO_CTO === serialMetter.toString())
         let timestamp = dataOfAllApiSource[`${apiSource}`].ts
         let tagData = filterDataBySerial.length ? filterDataBySerial[filterDataBySerial.length - 1][`${parameterTag}`] : undefined
+        console.log(tagData)
         if (tagData !== undefined) {
-          //console.log(tagData)
           let dataByScale
           if (dataType === "Number") {
             dataByScale = tagData * scale
@@ -516,6 +516,41 @@ setTagInRawData()
 
 //================================================================
 // Check Status API SOURCE
+
+//================================================================
+
+//================================================================
+// Check Status Device
+
+async function CheckDeviceStatus() {
+  try {
+
+    let api_sources = await getApiSource()
+
+    let start = moment().startOf('days')
+    if (moment().hour() <= 0) {
+      start = moment().subtract(2, 'hours').startOf('days')
+    }
+    console.log("Time Check: " + start)
+
+    //====> Update LastValue in Tag Table
+
+    let dataOfAllApiSource = {}
+    for (let i = 0; i < api_sources.length; i++) {
+      const api_source = api_sources[i];
+      dataOfAllApiSource[`${api_source.connection_name}`] = await callAPI(api_source, start)
+    }
+
+    
+
+    
+    //=====> Insert Raw Data
+    console.log("---> Check Status", moment().format('HH:mm:ss'))
+  }
+  catch (error) {
+    console.log(error)
+  }
+}
 
 //================================================================
 
