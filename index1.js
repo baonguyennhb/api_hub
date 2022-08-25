@@ -264,6 +264,7 @@ async function ReadMetter() {
     }
     console.log(start)
 
+    let testTime = "2022-06-18 00:00:00"
 
     //====> Update LastValue in Tag Table
 
@@ -279,7 +280,7 @@ async function ReadMetter() {
     let dataOfAllApiSource = {}
     for (let i = 0; i < api_sources.length; i++) {
       const api_source = api_sources[i];
-      dataOfAllApiSource[`${api_source.connection_name}`] = await callAPI(api_source, start)
+      dataOfAllApiSource[`${api_source.connection_name}`] = await callAPI(api_source, testTime)
     }
 
     for (let i = 0; i < allTags.length; i++) {
@@ -293,7 +294,7 @@ async function ReadMetter() {
         let metterId = allTags[i].metter_id
         let filterDataBySerial = dataOfAllApiSource[`${apiSource}`].data?.filter(value => value.SO_CTO === serialMetter.toString())
         let timestamp = dataOfAllApiSource[`${apiSource}`].ts
-        let tagData = filterDataBySerial.length ? filterDataBySerial[filterDataBySerial.length - 1][`${parameterTag}`] : undefined
+        let tagData = filterDataBySerial?.length ? filterDataBySerial[filterDataBySerial.length - 1][`${parameterTag}`] : undefined
         console.log(tagData)
         if (tagData !== undefined) {
           let dataByScale
@@ -316,10 +317,9 @@ async function ReadMetter() {
       const api_source = api_sources[i];
 
       let all_tags = await getTagInRawNeedupdate(api_source.id, start)
-      let data_sources = await callAPI(api_source, start)
-
+      let data_sources = await callAPI(api_source, testTime)
       //console.log('All_tags', all_tags.length)
-      if (all_tags) {
+      if (all_tags && data_sources.data) {
         for (let j = 0; j < all_tags.length; j++) {
           const tag = all_tags[j];
           //console.log(tag)
@@ -339,11 +339,13 @@ async function ReadMetter() {
     //=====> Insert Raw Data
     console.log("---> Read Data OK", moment().format('HH:mm:ss'))
 
-    setTimeout(ReadMetter, nextExecutionTime);
   }
   catch (error) {
     console.log(error)
   }
+
+  setTimeout(ReadMetter, nextExecutionTime);
+
 }
 
 ReadMetter()
