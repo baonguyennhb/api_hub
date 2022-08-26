@@ -245,7 +245,7 @@ async function callAPI(api_source, start) {
       ts: moment().format("YYYY-MM-DD HH:mm:ss")
     }
   } catch (error) {
-
+    console.log(error)
   }
 }
 
@@ -264,6 +264,7 @@ async function ReadMetter() {
     }
     console.log(start)
 
+    let testTime = "2022-06-18 00:00:00"
 
     //====> Update LastValue in Tag Table
 
@@ -293,9 +294,9 @@ async function ReadMetter() {
         let metterId = allTags[i].metter_id
         let filterDataBySerial = dataOfAllApiSource[`${apiSource}`].data?.filter(value => value.SO_CTO === serialMetter.toString())
         let timestamp = dataOfAllApiSource[`${apiSource}`].ts
-        let tagData = filterDataBySerial.length ? filterDataBySerial[filterDataBySerial.length - 1][`${parameterTag}`] : undefined
+        let tagData = filterDataBySerial?.length ? filterDataBySerial[filterDataBySerial.length - 1][`${parameterTag}`] : undefined
+        //console.log(tagData)
         if (tagData !== undefined) {
-          //console.log(tagData)
           let dataByScale
           if (dataType === "Number") {
             dataByScale = tagData * scale
@@ -317,9 +318,8 @@ async function ReadMetter() {
 
       let all_tags = await getTagInRawNeedupdate(api_source.id, start)
       let data_sources = await callAPI(api_source, start)
-
       //console.log('All_tags', all_tags.length)
-      if (all_tags) {
+      if (all_tags && data_sources.data) {
         for (let j = 0; j < all_tags.length; j++) {
           const tag = all_tags[j];
           //console.log(tag)
@@ -339,11 +339,13 @@ async function ReadMetter() {
     //=====> Insert Raw Data
     console.log("---> Read Data OK", moment().format('HH:mm:ss'))
 
-    setTimeout(ReadMetter, nextExecutionTime);
   }
   catch (error) {
     console.log(error)
   }
+
+  setTimeout(ReadMetter, nextExecutionTime);
+
 }
 
 ReadMetter()
@@ -516,6 +518,67 @@ setTagInRawData()
 
 //================================================================
 // Check Status API SOURCE
+
+//================================================================
+
+//================================================================
+// Check Status Device
+
+async function CheckDeviceStatus() {
+  try {
+
+    let api_sources = await getApiSource()
+
+    let start = moment().startOf('days')
+    if (moment().hour() <= 0) {
+      start = moment().subtract(2, 'hours').startOf('days')
+    }
+
+    let testTime = "2022-06-18 00:00:00"
+
+    console.log("Time Check: " + moment(start).format("YYYY-MM-DD HH:mm:ss"))
+
+    //====> Update LastValue in Tag Table
+
+    let dataOfAllApiSource = {}
+    for (let i = 0; i < api_sources.length; i++) {
+      const api_source = api_sources[i];
+      dataOfAllApiSource[`${api_source.connection_name}`] = await callAPI(api_source, start)
+    }
+
+    let sql = "SELECT * " +
+      "FROM ApiSource " +
+      "LEFT JOIN Metter " +
+      "ON ApiSource.id = Metter.api_source " 
+    
+    const allMetter = await query(sql)
+    //console.log(allMetter)
+
+    for (let i = 0; i < allMetter.length; i++) {
+      let apiSource = allMetter[i].connection_name
+      let serialMetter = allMetter[i].serial
+      let id = allMetter[i].id
+      let filterDataBySerial = dataOfAllApiSource[`${apiSource}`].data?.filter(value => value.SO_CTO === serialMetter.toString())
+      let NGAYGIO = filterDataBySerial?.length ? filterDataBySerial[filterDataBySerial.length - 1][`NGAYGIO`] : undefined
+      // console.log(moment().unix())
+      // console.log(moment(NGAYGIO).unix())
+      if (NGAYGIO !== undefined) {
+        let deltaTime = moment().unix() - moment(NGAYGIO).unix()
+        let statusDevice = ( deltaTime > 7200 ) ? 0 : 1
+        //console.log(deltaTime)
+        let updatedDevice = await query(`UPDATE Metter SET status= ${statusDevice} WHERE id=${id} `)
+      }
+    }
+    //=====> Insert Raw Data
+    console.log("---> Check Status", moment().format('HH:mm:ss'))
+    console.log("UPDATE STATUS METTER SUCESS!")
+  }
+  catch (error) {
+    console.log(error)
+  }
+}
+
+setInterval(CheckDeviceStatus, 2 * 60 * 1000)
 
 //================================================================
 

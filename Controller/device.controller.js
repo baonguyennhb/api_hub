@@ -22,7 +22,7 @@ module.exports.postAdd = async (req, res) => {
   try {
     let data = req.body
     console.log(data)
-    let sql = `INSERT INTO Metter (api_source, serial, metter_id, description, interval, status) Values ( ${data.apiSource}, '${data.serial}' , '${data.metter_id}', '${data.description}', ${data.interval}, 1 )`
+    let sql = `INSERT INTO Metter (api_source, serial, metter_id, description, interval, status) Values ( ${data.apiSource}, '${data.serial}' , '${data.metter_id}', '${data.description}', ${data.interval}, 0 )`
     const devices = await query(sql)
     const dataSend = {
         code: 200,
