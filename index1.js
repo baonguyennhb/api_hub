@@ -280,7 +280,7 @@ async function ReadMetter() {
     let dataOfAllApiSource = {}
     for (let i = 0; i < api_sources.length; i++) {
       const api_source = api_sources[i];
-      dataOfAllApiSource[`${api_source.connection_name}`] = await callAPI(api_source, testTime)
+      dataOfAllApiSource[`${api_source.connection_name}`] = await callAPI(api_source, start)
     }
 
     for (let i = 0; i < allTags.length; i++) {
@@ -295,7 +295,7 @@ async function ReadMetter() {
         let filterDataBySerial = dataOfAllApiSource[`${apiSource}`].data?.filter(value => value.SO_CTO === serialMetter.toString())
         let timestamp = dataOfAllApiSource[`${apiSource}`].ts
         let tagData = filterDataBySerial?.length ? filterDataBySerial[filterDataBySerial.length - 1][`${parameterTag}`] : undefined
-        console.log(tagData)
+        //console.log(tagData)
         if (tagData !== undefined) {
           let dataByScale
           if (dataType === "Number") {
@@ -317,7 +317,7 @@ async function ReadMetter() {
       const api_source = api_sources[i];
 
       let all_tags = await getTagInRawNeedupdate(api_source.id, start)
-      let data_sources = await callAPI(api_source, testTime)
+      let data_sources = await callAPI(api_source, start)
       //console.log('All_tags', all_tags.length)
       if (all_tags && data_sources.data) {
         for (let j = 0; j < all_tags.length; j++) {
@@ -533,7 +533,10 @@ async function CheckDeviceStatus() {
     if (moment().hour() <= 0) {
       start = moment().subtract(2, 'hours').startOf('days')
     }
-    console.log("Time Check: " + start)
+
+    let testTime = "2022-06-18 00:00:00"
+
+    console.log("Time Check: " + moment(start).format("YYYY-MM-DD HH:mm:ss"))
 
     //====> Update LastValue in Tag Table
 
@@ -543,16 +546,39 @@ async function CheckDeviceStatus() {
       dataOfAllApiSource[`${api_source.connection_name}`] = await callAPI(api_source, start)
     }
 
+    let sql = "SELECT * " +
+      "FROM ApiSource " +
+      "LEFT JOIN Metter " +
+      "ON ApiSource.id = Metter.api_source " 
     
+    const allMetter = await query(sql)
+    //console.log(allMetter)
 
-    
+    for (let i = 0; i < allMetter.length; i++) {
+      let apiSource = allMetter[i].connection_name
+      let serialMetter = allMetter[i].serial
+      let id = allMetter[i].id
+      let filterDataBySerial = dataOfAllApiSource[`${apiSource}`].data?.filter(value => value.SO_CTO === serialMetter.toString())
+      let NGAYGIO = filterDataBySerial?.length ? filterDataBySerial[filterDataBySerial.length - 1][`NGAYGIO`] : undefined
+      // console.log(moment().unix())
+      // console.log(moment(NGAYGIO).unix())
+      if (NGAYGIO !== undefined) {
+        let deltaTime = moment().unix() - moment(NGAYGIO).unix()
+        let statusDevice = ( deltaTime > 7200 ) ? 0 : 1
+        //console.log(deltaTime)
+        let updatedDevice = await query(`UPDATE Metter SET status= ${statusDevice} WHERE id=${id} `)
+      }
+    }
     //=====> Insert Raw Data
     console.log("---> Check Status", moment().format('HH:mm:ss'))
+    console.log("UPDATE STATUS METTER SUCESS!")
   }
   catch (error) {
     console.log(error)
   }
 }
+
+setInterval(CheckDeviceStatus, 2 * 60 * 1000)
 
 //================================================================
 
