@@ -511,10 +511,13 @@ app.post("/api/v1/data-hub/upload-config", async (req, res) => {
 // Run job every 0h5 am everyday
 var job0h5 = new CronJob('5 0 * * *', async function () {
   await setTagInRawData()
+
+  await delRawData()
 }, null, true, 'Asia/Ho_Chi_Minh');
 
 job0h5.start()
 setTagInRawData()
+delRawData()
 
 //================================================================
 // Check Status API SOURCE
@@ -582,6 +585,18 @@ setInterval(CheckDeviceStatus, 2 * 60 * 1000)
 
 //================================================================
 
+async function delRawData(){
+  try{
+    let end = moment().subtract(3, 'days').startOf('day').format('YYYY-MM-DD HH:mm:ss')
+    let sql_str = `DELETE FROM RawData WHERE timestamp < '${end}'`
+    console.log(sql_str)
+    let rs = await query(sql_str)
+    console.log('====> Deleted' + rs)
+  }catch(err){
+    console.log("====> Error Delete" +  err.message)
+  }
+  
+}
 
 
 
