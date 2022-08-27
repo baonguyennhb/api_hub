@@ -32,6 +32,24 @@ module.exports.postAdd = async (req, res) => {
   try {
     let data = req.body
     console.log(data)
+
+    // Check ton tai Tag
+    let getTagName = await query(`SELECT * FROM Tag WHERE metter_id='${data.metterId}' AND api_source='${data.apiSource}' AND name='${data.name}'`)
+    if (getTagName.length > 0) {
+      return res.status(200).send({
+        code: 400,
+        message: "Tag Name already exists!"
+      })
+    }
+    let getTagParams = await query(`SELECT * FROM Tag WHERE metter_id='${data.metterId}' AND api_source='${data.apiSource}' AND parameter='${data.parameter}'`)
+    if (getTagParams.length > 0) {
+      return res.status(200).send({
+        code: 400,
+        message: "Parameter already exists!"
+      })
+    }
+    // Check ton tai Tag
+
     let sql = `INSERT INTO Tag (api_source, metter_id, name, parameter, data_type, scale) 
                 Values ( '${data.apiSource}', '${data.metterId}', '${data.name}', '${data.parameter}', '${data.data_type}', '${data.scale}' )`
     const tagCreate = await query(sql)

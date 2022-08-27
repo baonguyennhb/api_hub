@@ -22,7 +22,21 @@ module.exports.postAdd = async (req, res) => {
   try {
     let data = req.body
     console.log(data)
-    let sql = `INSERT INTO Metter (api_source, serial, metter_id, description, interval, status) Values ( ${data.apiSource}, '${data.serial}' , '${data.metter_id}', '${data.description}', ${data.interval}, 0 )`
+    let getSerial = await query(`SELECT * FROM Metter WHERE serial='${data.serial}' AND api_source='${data.apiSource}'`)
+    if (getSerial.length > 0) {
+      return res.status(200).send({
+        code: 400,
+        message: "Serial already exists!"
+      })
+    }
+    let getMetterId = await query(`SELECT * FROM Metter WHERE metter_id='${data.metter_id}' AND api_source='${data.apiSource}'`)
+    if (getMetterId.length > 0) {
+      return res.status(200).send({
+        code: 400,
+        message: "Metter ID already exists!"
+      })
+    }
+    let sql = `INSERT INTO Metter (api_source, serial, metter_id, description, interval, status) Values ( '${data.apiSource}', '${data.serial}' , '${data.metter_id}', '${data.description}', ${data.interval}, 0 )`
     const devices = await query(sql)
     const dataSend = {
         code: 200,
