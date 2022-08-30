@@ -24,8 +24,8 @@ app.listen(port, () => {
 
 // Variable
 
-let groupId //'scada_5dAWAnEpGXe'
-let mqttUrl  //"mqtt://rabbitmq-001-pub.hz.wise-paas.com.cn:1883"
+let groupId ='scada_5dAWAnEpGXe'
+let mqttUrl  = "mqtt://rabbitmq-001-pub.hz.wise-paas.com.cn:1883"
 let mqttTopicConn = `iot-2/evt/waconn/fmt/${groupId}`
 let mqttTopicCfg = `iot-2/evt/wacfg/fmt/${groupId}`
 let mqttTopicSendata = `iot-2/evt/wadata/fmt/${groupId}`
@@ -488,13 +488,18 @@ const DeleteMqttTag = async (req, res) => {
 app.post("/api/v1/data-hub/upload-config", async (req, res) => {
   try {
     const data = req.body
-    const updatedDataHub = await query(`UPDATE DataHub SET group_id = '${data.group_id}', host = '${data.host}', port = '${data.port}', username = '${data.username}', password = '${data.password}', interval = '${data.interval}'`)
+    console.log(data)
+    const group_id = data.group_id.trim()
+    const host = data.host.trim()
+    const port = data.port
+    const username = data.username.trim()
+    const password = data.password.trim()
+    const updatedDataHub = await query(`UPDATE DataHub SET group_id = '${group_id}', host = '${host}', port = '${port}', username = '${username}', password = '${password}', interval = '${data.interval}'`)
     if (client) {
       client.end()
     }
     await Init()
-
-    await sendTagConfigMessage()
+    //await sendTagConfigMessage()
     const dataSend = {
       "code": 200,
       "message": "OK",
