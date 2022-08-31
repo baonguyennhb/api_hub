@@ -24,8 +24,8 @@ app.listen(port, () => {
 
 // Variable
 
-let groupId ='scada_5dAWAnEpGXe'
-let mqttUrl  = "mqtt://rabbitmq-001-pub.hz.wise-paas.com.cn:1883"
+let groupId = 'scada_5dAWAnEpGXe'
+let mqttUrl = "mqtt://rabbitmq-001-pub.hz.wise-paas.com.cn:1883"
 let mqttTopicConn = `iot-2/evt/waconn/fmt/${groupId}`
 let mqttTopicCfg = `iot-2/evt/wacfg/fmt/${groupId}`
 let mqttTopicSendata = `iot-2/evt/wadata/fmt/${groupId}`
@@ -60,7 +60,7 @@ async function Init() {
     port: 1883,
     username: config[0].username, //     'Goy2waYPAGQP:n3Q78J2BBKeK',
     password: config[0].password, //    'CVemCimzm0duGLr6OnvJ',
-    reconnectPeriod: 2000,
+    reconnectPeriod: 5000,
     connectTimeout: 5000
   };
 
@@ -206,14 +206,24 @@ const SendDataTagToDataHub = async () => {
     allTagWithData = allTagWithData.map(value => {
       return {
         name: `${value.metter_id}:${value.name}`,
-        last_value: value?.data_type === "Number" ? parseFloat(value.last_value) : value.last_value
+        last_value: value?.data_type === "Number" ? parseFloat(value.last_value) : value.last_value,
+        time_in_api_source: value.time_in_api_source,
+        tag_id: value.id
       }
     })
     const topic = mqttTopicSendata
     const valueTagMessage = ValueTagMessage(allTagWithData, groupId)
-    client.publish(topic, JSON.stringify(valueTagMessage), { qos: 1, retain: false });
+    //client.publish(topic, JSON.stringify(valueTagMessage), { qos: 1, retain: false });
+    let rs = client.publish(topic, JSON.stringify(valueTagMessage), { qos: 1, retain: false });
+    if (rs.connected) {
+      console.log("Push Success")
+      console.log("Update Send Status Success")
+      updateIsSent(allTagWithData)
+    }
+    //console.log(rs)
   } catch (error) {
     console.log(error)
+    console.log("Push Failed!")
   }
 
 }
@@ -295,6 +305,7 @@ async function ReadMetter() {
         let filterDataBySerial = dataOfAllApiSource[`${apiSource}`].data?.filter(value => value.SO_CTO === serialMetter.toString())
         let timestamp = dataOfAllApiSource[`${apiSource}`].ts
         let tagData = filterDataBySerial?.length ? filterDataBySerial[filterDataBySerial.length - 1][`${parameterTag}`] : undefined
+        let time_in_api_source = filterDataBySerial?.length ? filterDataBySerial[filterDataBySerial.length - 1][`NGAYGIO`] : undefined
         //console.log(tagData)
         if (tagData !== undefined) {
           let dataByScale
@@ -303,7 +314,7 @@ async function ReadMetter() {
           } else {
             dataByScale = tagData
           }
-          let sqlUpdateValue = `UPDATE Tag SET last_value = '${dataByScale}', timestamp = '${timestamp}' where api_source = '${apiSourceId}' AND metter_id = '${metterId}' AND parameter= '${parameterTag}'`
+          let sqlUpdateValue = `UPDATE Tag SET last_value = '${dataByScale}', timestamp = '${timestamp}', time_in_api_source = '${time_in_api_source}' where api_source = '${apiSourceId}' AND metter_id = '${metterId}' AND parameter= '${parameterTag}'`
           const updated = await query(sqlUpdateValue)
         }
       }
@@ -557,8 +568,8 @@ async function CheckDeviceStatus() {
     let sql = "SELECT * " +
       "FROM ApiSource " +
       "LEFT JOIN Metter " +
-      "ON ApiSource.id = Metter.api_source " 
-    
+      "ON ApiSource.id = Metter.api_source "
+
     const allMetter = await query(sql)
     //console.log(allMetter)
 
@@ -572,7 +583,7 @@ async function CheckDeviceStatus() {
       // console.log(moment(NGAYGIO).unix())
       if (NGAYGIO !== undefined) {
         let deltaTime = moment().unix() - moment(NGAYGIO).unix()
-        let statusDevice = ( deltaTime > 7200 ) ? 0 : 1
+        let statusDevice = (deltaTime > 7200) ? 0 : 1
         //console.log(deltaTime)
         let updatedDevice = await query(`UPDATE Metter SET status= ${statusDevice} WHERE id=${id} `)
       }
@@ -590,18 +601,55 @@ setInterval(CheckDeviceStatus, 2 * 60 * 1000)
 
 //================================================================
 
-async function delRawData(){
-  try{
+async function delRawData() {
+  try {
     let end = moment().subtract(3, 'days').startOf('day').format('YYYY-MM-DD HH:mm:ss')
     let sql_str = `DELETE FROM RawData WHERE timestamp < '${end}'`
     console.log(sql_str)
     let rs = await query(sql_str)
     console.log('====> Deleted' + rs)
-  }catch(err){
-    console.log("====> Error Delete" +  err.message)
+  } catch (err) {
+    console.log("====> Error Delete" + err.message)
   }
-  
+
 }
+
+//=================================== BackUp Function=============
+// Update Mqtt Tag After Send Data-Hub Sucess
+
+async function updateIsSent(tags) {
+  try {
+    for (let i = 0; i < tags.length; i++) {
+      let tag_id = tags[i].tag_id
+      let time_in_api_source = tags[i].time_in_api_source
+      let tagInRawData = await query(`SELECT * FROM RawData WHERE tag_id = ${tag_id} AND timestamp = '${time_in_api_source}' AND is_had_data = 1`)
+      if (tagInRawData.length > 0) {
+        let updated = await query(`UPDATE RawData SET is_sent = 1 WHERE tag_id = ${tag_id} AND timestamp = '${time_in_api_source}' AND is_had_data = 1`)
+      }
+    }
+  } catch (error) {
+    console.log(error)
+  }
+}
+
+// BackUp Data To Data-Hub
+
+async function BackUpMqtt() {
+  try {
+    const now = moment().format("YYYY-MM-DD HH:mm:ss")
+    let getDataBackup = await query("SELECT * FROM RawData WHERE is_had_data = 1 AND is_sent = 0")
+    if (getDataBackup.length == 0) {
+      return
+    }
+    
+    for (let i = 0; i < getDataBackup.length; i++) {
+      console.log(getDataBackup[i])
+    }
+  } catch (error) {
+    
+  }
+}
+BackUpMqtt()
 
 
 
