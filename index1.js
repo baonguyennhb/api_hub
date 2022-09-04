@@ -673,7 +673,7 @@ async function BackUpMqtt() {
     }
 
     for (let i = 0; i < getDataBackup.length; i++) {
-      console.log(getDataBackup[i])
+      //console.log(getDataBackup[i])
     }
   } catch (error) {
 
