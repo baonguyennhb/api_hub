@@ -18,14 +18,19 @@ const DeleteTag = (tag, groupId, heatbeat) => {
     return dataConfig
 }
 
-const DeleteAllTag = (groupId, heatbeat) => {
+const DeleteAllTag = (tags, groupId, heatbeat) => {
     let d = {}
-    d[`${groupId}`] = {
-        "TID": 1,
-        "Hbt": heatbeat,
-        "PID": 1,
-        "BID": 0,
-        "Del": 1
+    let DTg = {}
+    for (let i = 0; i < tags.length; i++) {
+        DTg[`${tags[i].name}`] = 1
+        d[`${groupId}`] = {
+            "TID": 1,
+            // "Dsc": tags[i].name,
+            "Hbt": heatbeat,
+            "PID": 1,
+            "BID": 0,
+            "DTg": DTg,
+        }
     }
     const dataConfig = {
         "d": d,
@@ -36,6 +41,6 @@ const DeleteAllTag = (groupId, heatbeat) => {
 
 module.exports = {
     DeleteTag: DeleteTag,
-    DeleteAllTag : DeleteAllTag
+    DeleteAllTag: DeleteAllTag
 }
 

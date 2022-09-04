@@ -36,6 +36,13 @@ module.exports.GetDetail = async (req, res) => {
 module.exports.postAdd = async (req, res) => {
     try {
         let data = req.body
+        let getApiSource = await query(`SELECT * FROM ApiSource WHERE connection_name='${data.connection_name}'`)
+        if (getApiSource.length > 0) {
+            return res.status(200).send({
+              code: 400,
+              message: "API connection already exists!"
+            })
+          }
         let { authorization } = data
         let sql = ''
         if (authorization) {
