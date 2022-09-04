@@ -69,6 +69,7 @@ async function Init() {
   mqttTopicConn = `iot-2/evt/waconn/fmt/${groupId}`
   mqttTopicCfg = `iot-2/evt/wacfg/fmt/${groupId}`
   mqttTopicSendata = `iot-2/evt/wadata/fmt/${groupId}`
+  _stTopic = `iot-2/evt/wast/fmt/${groupId}`
   HbtInterval = config[0].heart_beat
 
   client = mqtt.connect(mqttUrl, options);
@@ -78,6 +79,11 @@ async function Init() {
   client.on("connect", async ack => {
     try {
       console.log("MQTT Client Connected!")
+      client.subscribe('test', function (err) {
+        if (!err) {
+          console.log(`Subscribe Topic ${_stTopic}`)
+        }
+      })
       is_error = false
       const _connectionMessage = ConnectionMessage(groupId)
       client.publish(mqttTopicConn, JSON.stringify(_connectionMessage), { qos: 1, retain: false })
@@ -148,6 +154,11 @@ async function Init() {
       console.log(error)
     }
   })
+  client.on('message', function (topic, message) {
+    // message is Buffer
+    console.log(`SubScribe Topic: ${topic}`)
+    console.log(`Message: ${message.toString()}`)
+  })
   //==================================================
 
 
@@ -178,14 +189,27 @@ const sendHeartBeatMessage = () => {
 
 const sendTagConfigMessage = async () => {
   try {
+    const topic = mqttTopicCfg
     const data_hub_cgf = await getDataHubConfig()
     const groupId = data_hub_cgf.group_id
+    const heatbeat = data_hub_cgf.heart_beat
     const allTag = await getMqttTag()
-    const _messageConfigTag = ConfigTagMessage(groupId, allTag)
-    const topic = mqttTopicCfg
-    client?.publish(topic, JSON.stringify(_messageConfigTag), { qos: 1, retain: false });
-    let profileDeleted = await query('DELETE FROM ProfileConfig')
-    let profileUpdated = await query(`INSERT INTO ProfileConfig (id, name) SELECT id , name FROM MqttTag`)
+    const profileConfigTag = await query("SELECT * FROM ProfileConfig")
+    const _messageDeleteAllConfigTag = DeleteTagConfigMessage.DeleteAllTag(profileConfigTag, groupId, heatbeat)
+    // Delete All Tag Before Upload A New Config
+    rs = client?.publish(topic, JSON.stringify(_messageDeleteAllConfigTag, { qos: 1, retain: false }))
+    if (!rs.connected) {
+      return
+    }
+    setTimeout(async () => {
+      // Upload a New Config
+      const _messageConfigTag = ConfigTagMessage(groupId, allTag)
+      client?.publish(topic, JSON.stringify(_messageConfigTag), { qos: 1, retain: false });
+      if (client.connected) {
+        let profileDeleted = await query('DELETE FROM ProfileConfig')
+        let profileUpdated = await query(`INSERT INTO ProfileConfig (id, name) SELECT id , name FROM MqttTag`)
+      }
+    }, 5000)
   } catch (error) {
     console.log(error)
   }
