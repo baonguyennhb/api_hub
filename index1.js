@@ -177,12 +177,18 @@ const sendHeartBeatMessage = () => {
 }
 
 const sendTagConfigMessage = async () => {
-  const data_hub_cgf = await getDataHubConfig()
-  const groupId = data_hub_cgf.group_id
-  const allTag = await getMqttTag()
-  const _messageConfigTag = ConfigTagMessage(groupId, allTag)
-  const topic = mqttTopicCfg
-  client?.publish(topic, JSON.stringify(_messageConfigTag), { qos: 1, retain: false });
+  try {
+    const data_hub_cgf = await getDataHubConfig()
+    const groupId = data_hub_cgf.group_id
+    const allTag = await getMqttTag()
+    const _messageConfigTag = ConfigTagMessage(groupId, allTag)
+    const topic = mqttTopicCfg
+    client?.publish(topic, JSON.stringify(_messageConfigTag), { qos: 1, retain: false });
+    let profileDeleted = await query('DELETE FROM ProfileConfig')
+    let profileUpdated = await query(`INSERT INTO ProfileConfig (id, name) SELECT id , name FROM MqttTag`)
+  } catch (error) {
+    console.log(error)
+  }
 }
 
 const SendDeleteConfigTag = async (tag, groupId, heatbeat) => {
@@ -637,16 +643,16 @@ async function updateIsSent(tags) {
 async function BackUpMqtt() {
   try {
     const now = moment().format("YYYY-MM-DD HH:mm:ss")
-    let getDataBackup = await query("SELECT * FROM RawData WHERE is_had_data = 1 AND is_sent = 0")
+    let getDataBackup = await query("SELECT * FROM RawData WHERE is_had_data = 1 AND is_sent = 0 ORDER BY timestamp")
     if (getDataBackup.length == 0) {
       return
     }
-    
+
     for (let i = 0; i < getDataBackup.length; i++) {
       console.log(getDataBackup[i])
     }
   } catch (error) {
-    
+
   }
 }
 BackUpMqtt()
