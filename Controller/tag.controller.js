@@ -64,7 +64,7 @@ module.exports.postAdd = async (req, res) => {
       timestamp_str = moment(start).format('YYYY-MM-DD HH:mm:ss')
 
       let sql2 = `INSERT INTO RawData (timestamp, api_source, metter_id, tag_name, serial, param, tag_id) 
-      Values ( '${timestamp_str}', ${data.apiSource}, '${data.metterId}', 'ABC', ${metter[0].serial}, '${data.parameter}', ${tag[0].id} )`
+      Values ( '${timestamp_str}', ${data.apiSource}, '${data.metterId}', '${data.name}', ${metter[0].serial}, '${data.parameter}', ${tag[0].id} )`
       const result2 = await query(sql2)
 
       start = moment(start).add(30, 'minutes')
@@ -107,9 +107,10 @@ module.exports.postEdit = async (req, res) => {
     console.log(req.query)
     //let sql = `SELECT * FROM Metter `
     let sql = `UPDATE Tag SET name = '${data.name}', scale = '${data.scale}', data_type = '${data.data_type}' where id = ${id}`
-
+    let sql_update_raw_data = `UPDATE RawData SET tag_name = '${data.name}' where tag_id = ${id}`
     //let sql = 'SELECT * FROM Metter'
     const tag = await query(sql)
+    const updateTagRawData = await  query(sql_update_raw_data)
     const dataSend = {
       code: 200,
       message: "OK",

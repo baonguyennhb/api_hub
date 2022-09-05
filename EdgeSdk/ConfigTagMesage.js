@@ -1,6 +1,7 @@
-const ConfigTagMessage = (groupId, tags) => {
+const ConfigTagMessage = (groupId, tags, tag_deletes) => {
     let d = {}
     let Utg = {}
+    let DTg = {}
     for (let i = 0; i < tags.length; i++) {
         tag_type = tags[i].tag_type
         if (tag_type === "Analog") {
@@ -27,13 +28,17 @@ const ConfigTagMessage = (groupId, tags) => {
             }
         }
     }
+    for (let i = 0; i < tag_deletes.length; i++) {
+        DTg[`${tag_deletes[i].name}`] = 1
+    }
     d[`${groupId}`] = {
         "TID": 1,
         "Dsc": "descrp",
         "Hbt": 5,
         "PID": 1,
         "BID": 0,
-        "UTg": Utg
+        "UTg": Utg,
+        "DTg": DTg
     }
     const dataConfig = {
         "d": d,

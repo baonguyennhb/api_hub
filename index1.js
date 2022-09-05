@@ -24,7 +24,7 @@ app.listen(port, () => {
 
 // Variable
 
-let groupId = 'scada_5dAWAnEpGXe'
+let groupId = 'scada_UzVa32VanG4I'
 let mqttUrl = "mqtt://rabbitmq-001-pub.hz.wise-paas.com.cn:1883"
 let mqttTopicConn = `iot-2/evt/waconn/fmt/${groupId}`
 let mqttTopicCfg = `iot-2/evt/wacfg/fmt/${groupId}`
@@ -42,6 +42,7 @@ var options = {
 let client
 let is_data_hub_connected = false
 let is_error = false
+let is_config = false
 var event = new EventEmitter()
 
 // Handle Connect MQTT and Push data
@@ -51,6 +52,7 @@ const HeartBeatMessage = require("./EdgeSdk/HeartBeatMessage")
 const ConfigTagMessage = require("./EdgeSdk/ConfigTagMesage")
 const DeleteTagConfigMessage = require("./EdgeSdk/DeleteTagMessage")
 const ValueTagMessage = require("./EdgeSdk/ValueTagMesage")
+const BackUpValueTagMessage = require("./EdgeSdk/BackupTagMessage")
 
 //=================================================
 // Init
@@ -90,8 +92,10 @@ async function Init() {
       // console.log("Connect success!")
       setInterval(sendHeartBeatMessage, HbtInterval * 1000)
       // Send Tag Config
-      sendTagConfigMessage()
-      console.log(" Config tag success!")
+      if (!is_config) {
+        sendTagConfigMessage()
+        console.log(" Config tag success!")
+      }
     } catch (error) {
       console.log(error)
     }
@@ -195,21 +199,32 @@ const sendTagConfigMessage = async () => {
     const heatbeat = data_hub_cgf.heart_beat
     const allTag = await getMqttTag()
     const profileConfigTag = await query("SELECT * FROM ProfileConfig")
-    const _messageDeleteAllConfigTag = DeleteTagConfigMessage.DeleteAllTag(profileConfigTag, groupId, heatbeat)
-    // Delete All Tag Before Upload A New Config
-    rs = client?.publish(topic, JSON.stringify(_messageDeleteAllConfigTag, { qos: 1, retain: false }))
-    if (!rs.connected) {
-      return
+    const diffTag = profileConfigTag.filter(({ name: name1 }) => !allTag.some(({ name: name2 }) => name2 === name1));
+    console.log(diffTag)
+    //===============>
+    const _messageConfigTag = ConfigTagMessage(groupId, allTag, diffTag)
+    client?.publish(topic, JSON.stringify(_messageConfigTag), { qos: 1, retain: false });
+    if (client?.connected) {
+      let profileDeleted = await query('DELETE FROM ProfileConfig')
+      let profileUpdated = await query(`INSERT INTO ProfileConfig (id, name) SELECT id , name FROM MqttTag`)
     }
-    setTimeout(async () => {
-      // Upload a New Config
-      const _messageConfigTag = ConfigTagMessage(groupId, allTag)
-      client?.publish(topic, JSON.stringify(_messageConfigTag), { qos: 1, retain: false });
-      if (client.connected) {
-        let profileDeleted = await query('DELETE FROM ProfileConfig')
-        let profileUpdated = await query(`INSERT INTO ProfileConfig (id, name) SELECT id , name FROM MqttTag`)
-      }
-    }, 5000)
+    is_config = true
+    //===============>
+    //const _messageDeleteAllConfigTag = DeleteTagConfigMessage.DeleteAllTag(profileConfigTag, groupId, heatbeat)
+    // Delete All Tag Before Upload A New Config
+    // rs = client?.publish(topic, JSON.stringify(_messageDeleteAllConfigTag, { qos: 1, retain: false }))
+    // if (!rs.connected) {
+    //   return
+    // }
+    // setTimeout(async () => {
+    //   // Upload a New Config
+    //   const _messageConfigTag = ConfigTagMessage(groupId, allTag)
+    //   client?.publish(topic, JSON.stringify(_messageConfigTag), { qos: 1, retain: false });
+    //   if (client.connected) {
+    //     let profileDeleted = await query('DELETE FROM ProfileConfig')
+    //     let profileUpdated = await query(`INSERT INTO ProfileConfig (id, name) SELECT id , name FROM MqttTag`)
+    //   }
+    // }, 5000)
   } catch (error) {
     console.log(error)
   }
@@ -439,7 +454,7 @@ async function setTagInRawData() {
     for (let i = 0; i < 48; i++) {
       timestamp_str = start.format('YYYY-MM-DD HH:mm:ss')
       await tags.forEach(async e => {
-        let sql2 = `INSERT INTO RawData (timestamp, api_source, tag_id, metter_id, serial, param) Values ( '${timestamp_str}', ${e.api_source}, ${e.TagId}, '${e.metter_id}', ${e.serial}, '${e.parameter}' )`
+        let sql2 = `INSERT INTO RawData (timestamp, api_source, tag_id, metter_id, serial, param, tag_name) Values ( '${timestamp_str}', ${e.api_source}, ${e.TagId}, '${e.metter_id}', ${e.serial}, '${e.parameter}', '${e.name}' )`
         try {
           await query(sql2)
         } catch (error) {
@@ -528,6 +543,7 @@ const DeleteMqttTag = async (req, res) => {
 
 app.post("/api/v1/data-hub/upload-config", async (req, res) => {
   try {
+    is_config = false
     const data = req.body
     console.log(data)
     const group_id = data.group_id.trim()
@@ -666,20 +682,57 @@ async function updateIsSent(tags) {
 
 async function BackUpMqtt() {
   try {
+    if (client?.connected !== true) {
+      console.log("No Mqtt Client!")
+      return
+    }
     const now = moment().format("YYYY-MM-DD HH:mm:ss")
     let getDataBackup = await query("SELECT * FROM RawData WHERE is_had_data = 1 AND is_sent = 0 ORDER BY timestamp")
     if (getDataBackup.length == 0) {
+      console.log("No Data Backup!")
       return
     }
 
-    for (let i = 0; i < getDataBackup.length; i++) {
-      //console.log(getDataBackup[i])
-    }
-  } catch (error) {
+    let dataBackup = getDataBackup.map(value => {
+      return {
+        ...value,
+        tag_id: value.tag_id,
+        name: `${value.metter_id}:${value.tag_name}`,
+        last_value: value.value
+      }
+    })
+    //console.log(dataBackup)
 
+    let i = 0
+
+    let handle = setInterval(async () => {
+      // Push Data Backup to DataHub
+
+      const topic = mqttTopicSendata
+      const valueTagMessage = BackUpValueTagMessage(dataBackup[i], groupId)
+      //client.publish(topic, JSON.stringify(valueTagMessage), { qos: 1, retain: false });
+
+      let rs = client?.publish(topic, JSON.stringify(valueTagMessage), { qos: 1, retain: false });
+      if (rs?.connected) {
+        console.log("Push Backup Success")
+        let updateIsSent = await query(`UPDATE RawData SET is_sent = 1 WHERE id=${dataBackup[i].id}`)
+        console.log("Update Send Status Success")
+      }
+      i++
+      if (i > getDataBackup.length - 1) clearInterval(handle)
+    }, 2000)
+
+  } catch (error) {
+    console.log("Push Backup Data Failed!")
   }
 }
-BackUpMqtt()
+// Run job every 2 minute
+var job2min = new CronJob('*/5 * * * *', async function () {
+  console.log("Backuping!")
+  await BackUpMqtt()
+}, null, true, 'Asia/Ho_Chi_Minh');
+
+job2min.start()
 
 
 
