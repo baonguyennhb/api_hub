@@ -81,7 +81,7 @@ async function Init() {
   client.on("connect", async ack => {
     try {
       console.log("MQTT Client Connected!")
-      client.subscribe('test', function (err) {
+      client.subscribe(_stTopic, function (err) {
         if (!err) {
           console.log(`Subscribe Topic ${_stTopic}`)
         }
@@ -112,27 +112,6 @@ async function Init() {
     try {
       console.log("MQTT Error!", ack.message)
       is_error = true
-      // let config = await query(`SELECT * FROM DataHub`)
-      // let options = {
-      //   port: 1883,
-      //   username: config[0].username, //     'Goy2waYPAGQP:n3Q78J2BBKeK',
-      //   password: config[0].password, //    'CVemCimzm0duGLr6OnvJ',
-      //   reconnectPeriod: 2000,
-      //   connectTimeout: 5000
-      // };
-
-      // groupId = config[0].group_id //'scada_qQ2N60h1DmL'
-      // mqttUrl = "mqtt://" + config[0].host + ":" + config[0].port
-      // mqttTopicConn = `iot-2/evt/waconn/fmt/${groupId}`
-      // mqttTopicCfg = `iot-2/evt/wacfg/fmt/${groupId}`
-      // mqttTopicSendata = `iot-2/evt/wadata/fmt/${groupId}`
-      // HbtInterval = config[0].heart_beat
-
-      // console.log(config[0])
-
-      // await delay(2000)
-      // client.reconnect(mqttUrl, options)
-
     } catch (error) {
       console.log(error)
     }
@@ -524,7 +503,7 @@ const DeleteMqttTag = async (req, res) => {
 
     let tagDelete = await query(`SELECT * FROM MqttTag where id = ${id}`)
 
-    SendDeleteConfigTag(tagDelete[0], groupId, 5)
+    //SendDeleteConfigTag(tagDelete[0], groupId, 5)
 
     let sql = `DELETE FROM MqttTag where id = ${id}`
 
@@ -553,17 +532,25 @@ app.post("/api/v1/data-hub/upload-config", async (req, res) => {
     const password = data.password.trim()
     const updatedDataHub = await query(`UPDATE DataHub SET group_id = '${group_id}', host = '${host}', port = '${port}', username = '${username}', password = '${password}', interval = '${data.interval}'`)
     if (client) {
-      client.end()
+      client.end(true, {}, async () => {
+        await Init()
+        const dataSend = {
+          "code": 200,
+          "message": "OK",
+          "data": "Config tag successfully!"
+        }
+        res.status(200).send(dataSend)
+      })
+    } else {
+      await Init()
+      const dataSend = {
+        "code": 200,
+        "message": "OK",
+        "data": "Config tag successfully!"
+      }
+      res.status(200).send(dataSend)
     }
-    await Init()
     //await sendTagConfigMessage()
-    const dataSend = {
-      "code": 200,
-      "message": "OK",
-      "data": "Config tag successfully!"
-    }
-    res.status(200).send(dataSend)
-
   } catch (error) {
     console.log(error)
   }
@@ -726,13 +713,13 @@ async function BackUpMqtt() {
     console.log("Push Backup Data Failed!")
   }
 }
-// Run job every 2 minute
-var job2min = new CronJob('*/5 * * * *', async function () {
+// Run job every 30 minute
+var job30min = new CronJob('*/30 * * * *', async function () {
   console.log("Backuping!")
   await BackUpMqtt()
 }, null, true, 'Asia/Ho_Chi_Minh');
 
-job2min.start()
+job30min.start()
 
 
 
