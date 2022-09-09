@@ -46,9 +46,9 @@ module.exports.postAdd = async (req, res) => {
         let { authorization } = data
         let sql = ''
         if (authorization) {
-            sql = `INSERT INTO ApiSource (connection_name, url, description, connection_time, interval, time_offset, is_authorization, username, password, status) Values ( '${data.connection_name}', '${data.url}' , '${data.description}' ,'${data.check_connection_time}', ${data.interval}, 30, '${data.authorization}', '${data.username}', '${data.password}', 1 )`
+            sql = `INSERT INTO ApiSource (connection_name, url, description, connection_time, interval, time_offset, is_authorization, username, password, status) Values ( '${data.connection_name}', '${data.url}' , '${data.description}' ,${data.check_connection_time}, ${data.interval}, 30, '${data.authorization}', '${data.username}', '${data.password}', 1 )`
         } else {
-            sql = `INSERT INTO ApiSource (connection_name, url, description, connection_time, interval, time_offset, is_authorization, status) Values ( '${data.connection_name}', '${data.url}' , '${data.description}' ,'${data.check_connection_time}', ${data.interval}, 30, '${data.authorization}', 1 )`
+            sql = `INSERT INTO ApiSource (connection_name, url, description, connection_time, interval, time_offset, is_authorization, status) Values ( '${data.connection_name}', '${data.url}' , '${data.description}' ,${data.check_connection_time}, ${data.interval}, 30, '${data.authorization}', 1 )`
         }
         const devices = await query(sql)
         const dataSend = {
@@ -68,7 +68,7 @@ module.exports.postEdit = async (req, res) => {
         let data = req.body
         console.log(req.query)
         //let sql = `SELECT * FROM Metter `
-        let sql = `UPDATE ApiSource SET connection_name = '${data.connection_name}', url = '${data.url}', description = '${data.description}', interval = '${data.interval}' , connection_time = '${data.check_connection_time}' where id = ${id}`
+        let sql = `UPDATE ApiSource SET connection_name = '${data.connection_name}', url = '${data.url}', description = '${data.description}', interval = ${data.interval} , connection_time = ${data.check_connection_time} where id = ${id}`
 
         //let sql = 'SELECT * FROM Metter'
         const api = await query(sql)

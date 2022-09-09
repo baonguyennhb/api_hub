@@ -43,6 +43,7 @@ let client
 let is_data_hub_connected = false
 let is_error = false
 let is_config = false
+let is_connected = false
 var event = new EventEmitter()
 
 // Handle Connect MQTT and Push data
@@ -62,8 +63,8 @@ async function Init() {
     port: 1883,
     username: config[0].username, //     'Goy2waYPAGQP:n3Q78J2BBKeK',
     password: config[0].password, //    'CVemCimzm0duGLr6OnvJ',
-    reconnectPeriod: 5000,
-    connectTimeout: 5000
+    reconnectPeriod: 30000,
+    connectTimeout: 30000
   };
 
   groupId = config[0].group_id //'scada_qQ2N60h1DmL'
@@ -87,15 +88,12 @@ async function Init() {
         }
       })
       is_error = false
+      is_connected = true
       const _connectionMessage = ConnectionMessage(groupId)
       client.publish(mqttTopicConn, JSON.stringify(_connectionMessage), { qos: 1, retain: false })
       // console.log("Connect success!")
       setInterval(sendHeartBeatMessage, HbtInterval * 1000)
-      // Send Tag Config
-      if (!is_config) {
-        sendTagConfigMessage()
-        console.log(" Config tag success!")
-      }
+
     } catch (error) {
       console.log(error)
     }
@@ -112,6 +110,7 @@ async function Init() {
     try {
       console.log("MQTT Error!", ack.message)
       is_error = true
+      is_connected = false
     } catch (error) {
       console.log(error)
     }
@@ -119,6 +118,7 @@ async function Init() {
   client.on("close", ack => {
     try {
       console.log("MQTT close!", ack?.message)
+      is_connected = false
     } catch (error) {
       console.log(error)
     }
@@ -126,6 +126,7 @@ async function Init() {
   client.on("disconnect", ack => {
     try {
       console.log("MQTT disconnect!", ack?.message)
+      is_connected = false
     } catch (error) {
       console.log(error)
     }
@@ -133,6 +134,7 @@ async function Init() {
   client.on("offline", ack => {
     try {
       console.log("MQTT offline!", ack?.message)
+      is_connected = false
     } catch (error) {
       console.log(error)
     }
@@ -520,9 +522,47 @@ const DeleteMqttTag = async (req, res) => {
   }
 }
 
-app.post("/api/v1/data-hub/upload-config", async (req, res) => {
+app.get("/api/v1/data-hub/connect", (req, res) => {
   try {
-    is_config = false
+    if (client?.connected == true) {
+      res.status(200).send({
+        code: 200,
+        data: 1
+      })
+    } else {
+      res.status(200).send({
+        code: 200,
+        data: 0
+      })
+    }
+  } catch (error) {
+
+  }
+})
+
+app.get("/api/v1/data-hub/disconnect", async (req, res) => {
+  try {
+    if (client?.connected) {
+      client.end(true, {}, async() => {
+        await delay(2000)
+        res.status(200).send({
+          code: 200,
+          message: "Close connecttion Sucessfully!"
+        })
+      })
+    } else {
+      res.status(200).send({
+        code: 400,
+        error: "Close failed because no connect with Data Hub!"
+      })
+    }
+  } catch (error) {
+    console.log(error)
+  }
+})
+
+app.post("/api/v1/data-hub/connect", async (req, res) => {
+  try {
     const data = req.body
     console.log(data)
     const group_id = data.group_id.trim()
@@ -531,22 +571,71 @@ app.post("/api/v1/data-hub/upload-config", async (req, res) => {
     const username = data.username.trim()
     const password = data.password.trim()
     const updatedDataHub = await query(`UPDATE DataHub SET group_id = '${group_id}', host = '${host}', port = '${port}', username = '${username}', password = '${password}', interval = '${data.interval}'`)
+
     if (client) {
       client.end(true, {}, async () => {
         await Init()
-        const dataSend = {
-          "code": 200,
-          "message": "OK",
-          "data": "Config tag successfully!"
+        await delay(2000)
+        // client.on("connect", () => {
+        if (is_connected) {
+          res.status(200).send({
+            code: 200,
+            message: "Connect Sucessfully!"
+          })
         }
-        res.status(200).send(dataSend)
+        // })
+        // client.on("error", () => {
+        else {
+          res.status(200).send({
+            code: 400,
+            error: "Connect Failed, Please check infomation again!"
+          })
+        }
+        // })
       })
     } else {
       await Init()
+      await delay(2000)
+      if (is_connected) {
+        res.status(200).send({
+          code: 200,
+          message: "Connect Sucessfully!"
+        })
+      }
+      // })
+      // client.on("error", () => {
+      else {
+        res.status(200).send({
+          code: 400,
+          error: "Connect Failed, Please check infomation again!"
+        })
+      }
+    }
+  } catch (error) {
+    console.log(error)
+  }
+})
+
+app.post("/api/v1/data-hub/upload-config", async (req, res) => {
+  try {
+    is_config = false
+    //=========> Send Tag Config
+    if (!is_config) {
+      await sendTagConfigMessage()
+      console.log(" Config tag success!")
+    }
+    if (client?.connected === true) {
       const dataSend = {
         "code": 200,
         "message": "OK",
         "data": "Config tag successfully!"
+      }
+      res.status(200).send(dataSend)
+    } else {
+      const dataSend = {
+        "code": 400,
+        "message": "OK",
+        "data": "No Connection, Please connect with Data Hub!"
       }
       res.status(200).send(dataSend)
     }

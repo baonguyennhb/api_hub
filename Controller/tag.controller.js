@@ -3,6 +3,16 @@ const common = require('../Common/query')
 const query = common.query
 var fsPromises = require('fs').promises;
 
+function trimObject(obj){
+  var trimmed = JSON.stringify(obj, (key, value) => {
+    if (typeof value === 'string') {
+      return value.trim();
+    }
+    return value;
+  });
+  return JSON.parse(trimmed);
+}
+
 module.exports.GetList = async (req, res) => {
   try {
     const { metterId } = req.query
@@ -31,17 +41,16 @@ module.exports.postAdd = async (req, res) => {
   let start = moment().startOf('days')
   try {
     let data = req.body
-    console.log(data)
-
+    data = trimObject(data)
     // Check ton tai Tag
-    let getTagName = await query(`SELECT * FROM Tag WHERE metter_id='${data.metterId}' AND api_source='${data.apiSource}' AND name='${data.name}'`)
+    let getTagName = await query(`SELECT * FROM Tag WHERE metter_id='${data.metterId}' AND api_source=${data.apiSource} AND name='${data.name}'`)
     if (getTagName.length > 0) {
       return res.status(200).send({
         code: 400,
         message: "Tag Name already exists!"
       })
     }
-    let getTagParams = await query(`SELECT * FROM Tag WHERE metter_id='${data.metterId}' AND api_source='${data.apiSource}' AND parameter='${data.parameter}'`)
+    let getTagParams = await query(`SELECT * FROM Tag WHERE metter_id='${data.metterId}' AND api_source=${data.apiSource} AND parameter='${data.parameter}'`)
     if (getTagParams.length > 0) {
       return res.status(200).send({
         code: 400,
@@ -51,11 +60,14 @@ module.exports.postAdd = async (req, res) => {
     // Check ton tai Tag
 
     let sql = `INSERT INTO Tag (api_source, metter_id, name, parameter, data_type, scale) 
-                Values ( '${data.apiSource}', '${data.metterId}', '${data.name}', '${data.parameter}', '${data.data_type}', '${data.scale}' )`
+                Values ( ${data.apiSource}, '${data.metterId}', '${data.name}', '${data.parameter}', '${data.data_type}', '${data.scale}' )`
     const tagCreate = await query(sql)
 
     //console.log(devices)
-    let metter = await query(`SELECT * FROM Metter where metter_id = '${data.metterId}' and api_source = ${data.apiSource} `)
+    console.log(data.metterId)
+    let str_sql = `SELECT * FROM Metter where metter_id = '${data.metterId}' and api_source = ${data.apiSource} `
+    let metter = await query(str_sql)
+    console.log(str_sql)
     let tag = await query(`SELECT * FROM Tag where metter_id = '${data.metterId}' and api_source = ${data.apiSource} and parameter = '${data.parameter}'`)
 
     //console.log(tag)

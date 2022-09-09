@@ -72,7 +72,22 @@ module.exports.GetListTag = async (req, res) => {
         }
         res.status(200).send(dataSend)
     } catch (error) {
-        
+
+    }
+}
+
+module.exports.DelAll = async (req, res) => {
+    try {
+        const sql = "DELETE FROM MqttTag"
+        const tags = await query(sql)
+        const dataSend = {
+            "code": 200,
+            "message": "OK",
+            "data": "Delete Sucessfully!"
+        }
+        res.status(200).send(dataSend)
+    } catch (error) {
+        console.log(error)
     }
 }
 
