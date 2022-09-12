@@ -9,7 +9,6 @@ module.exports.Login = async (req, res) => {
     try {
         let sql = 'SELECT * FROM users'
         const user = await query(sql)
-        console.log(user)
         const dataSend = {
             "code": 200,
             "message": "Login successed",

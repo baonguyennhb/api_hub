@@ -82,11 +82,11 @@ async function Init() {
   client.on("connect", async ack => {
     try {
       console.log("MQTT Client Connected!")
-      client.subscribe(_stTopic, function (err) {
-        if (!err) {
-          console.log(`Subscribe Topic ${_stTopic}`)
-        }
-      })
+      // client.subscribe(_stTopic, function (err) {
+      //   if (!err) {
+      //     console.log(`Subscribe Topic ${_stTopic}`)
+      //   }
+      // })
       is_error = false
       is_connected = true
       const _connectionMessage = ConnectionMessage(groupId)
@@ -139,11 +139,11 @@ async function Init() {
       console.log(error)
     }
   })
-  client.on('message', function (topic, message) {
-    // message is Buffer
-    console.log(`SubScribe Topic: ${topic}`)
-    console.log(`Message: ${message.toString()}`)
-  })
+  // client.on('message', function (topic, message) {
+  //   // message is Buffer
+  //   console.log(`SubScribe Topic: ${topic}`)
+  //   console.log(`Message: ${message.toString()}`)
+  // })
   //==================================================
 
 
@@ -180,16 +180,17 @@ const sendTagConfigMessage = async () => {
     const heatbeat = data_hub_cgf.heart_beat
     const allTag = await getMqttTag()
     const profileConfigTag = await query("SELECT * FROM ProfileConfig")
-    const diffTag = profileConfigTag.filter(({ name: name1 }) => !allTag.some(({ name: name2 }) => name2 === name1));
+    const diffTag = profileConfigTag.filter(({ name: name1, tag_type: type1  }) => !allTag.some(({ name: name2, tag_type: type2 }) => name2 === name1 && type1 === type2));
+    console.log("Diff Tag:")
     console.log(diffTag)
     //===============>
     const _messageConfigTag = ConfigTagMessage(groupId, allTag, diffTag)
     client?.publish(topic, JSON.stringify(_messageConfigTag), { qos: 1, retain: false });
-    if (client?.connected) {
+    if (client?.connected === true) {
       let profileDeleted = await query('DELETE FROM ProfileConfig')
-      let profileUpdated = await query(`INSERT INTO ProfileConfig (id, name) SELECT id , name FROM MqttTag`)
+      let profileUpdated = await query(`INSERT INTO ProfileConfig (id, name, tag_type) SELECT id , name, tag_type FROM MqttTag`)
+      is_config = true
     }
-    is_config = true
     //===============>
     //const _messageDeleteAllConfigTag = DeleteTagConfigMessage.DeleteAllTag(profileConfigTag, groupId, heatbeat)
     // Delete All Tag Before Upload A New Config
@@ -212,11 +213,18 @@ const sendTagConfigMessage = async () => {
 }
 
 const SendDeleteConfigTag = async (tag, groupId, heatbeat) => {
-  const _messageDeleteConfigTag = DeleteTagConfigMessage.DeleteTag(tag, groupId, heatbeat)
-  console.log("Delete!")
-  console.log(_messageDeleteConfigTag)
-  const topic = mqttTopicCfg
-  client?.publish(topic, JSON.stringify(_messageDeleteConfigTag), { qos: 1, retain: false });
+  try {
+    const _messageDeleteConfigTag = DeleteTagConfigMessage.DeleteTag(tag, groupId, heatbeat)
+    console.log("Delete!")
+    console.log(JSON.stringify(_messageDeleteConfigTag))
+    const topic = mqttTopicCfg
+    let rs = client?.publish(topic, JSON.stringify(_messageDeleteConfigTag), { qos: 1, retain: false });
+    if (rs?.connected === true) {
+      return true
+    } else return false
+  } catch (error) {
+    console.log(error)
+  }
 }
 
 const SendDataTagToDataHub = async () => {
@@ -240,11 +248,14 @@ const SendDataTagToDataHub = async () => {
     const topic = mqttTopicSendata
     const valueTagMessage = ValueTagMessage(allTagWithData, groupId)
     //client.publish(topic, JSON.stringify(valueTagMessage), { qos: 1, retain: false });
-    let rs = client.publish(topic, JSON.stringify(valueTagMessage), { qos: 1, retain: false });
-    if (rs.connected) {
-      console.log("Push Success")
-      console.log("Update Send Status Success")
-      updateIsSent(allTagWithData)
+    if (is_config) {
+      let rs = client.publish(topic, JSON.stringify(valueTagMessage), { qos: 1, retain: false });
+      if (rs.connected) {
+        let time = moment().format("HH:mm:ss")
+        console.log(`Push Success - time: ${time}`)
+        updateIsSent(allTagWithData)
+        console.log(`Update Send Status Success - time: ${time}`)
+      }
     }
     //console.log(rs)
   } catch (error) {
@@ -522,6 +533,40 @@ const DeleteMqttTag = async (req, res) => {
   }
 }
 
+app.post('/api/v1/data-hub/remove-config/tag', async (req, res) => {
+  try {
+    let tag = {
+      name: req.body.tagName.trim()
+    }
+    if (!is_connected) {
+      return res.status(200).send({
+        code: 400,
+        error: "Delete Config failed because no connect with Data Hub!"
+      })
+    }
+    if (tag.name === "") {
+      return res.status(200).send({
+        code: 400,
+        error: "No Tag Config Name, Please Input Tag Name!"
+      })
+    }
+    let rs = await SendDeleteConfigTag(tag, groupId, 5)
+    if (rs) {
+      return res.status(200).send({
+        code: 200,
+        message: `Delete Config of Tag ${tag.name} Sucessfully!`
+      })
+    } else {
+      res.status(200).send({
+        code: 400,
+        message: `Delete Config of Tag ${tag.name} Failed!`
+      })
+    }
+  } catch (error) {
+    console.log(error)
+  }
+})
+
 app.get("/api/v1/data-hub/connect", (req, res) => {
   try {
     if (client?.connected == true) {
@@ -543,7 +588,7 @@ app.get("/api/v1/data-hub/connect", (req, res) => {
 app.get("/api/v1/data-hub/disconnect", async (req, res) => {
   try {
     if (client?.connected) {
-      client.end(true, {}, async() => {
+      client.end(true, {}, async () => {
         await delay(2000)
         res.status(200).send({
           code: 200,
@@ -803,12 +848,12 @@ async function BackUpMqtt() {
   }
 }
 // Run job every 30 minute
-var job30min = new CronJob('*/30 * * * *', async function () {
-  console.log("Backuping!")
-  await BackUpMqtt()
-}, null, true, 'Asia/Ho_Chi_Minh');
+// var job30min = new CronJob('*/1 * * * *', async function () {
+//   console.log("Backuping!")
+//   await BackUpMqtt()
+// }, null, true, 'Asia/Ho_Chi_Minh');
 
-job30min.start()
+//job30min.start()
 
 
 
