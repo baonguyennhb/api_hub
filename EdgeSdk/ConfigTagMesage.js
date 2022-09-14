@@ -37,9 +37,8 @@ const ConfigTagMessage = (groupId, tags, tag_deletes) => {
         "Hbt": 5,
         "PID": 1,
         "BID": 0,
-        "Del": 1,
-        "DTg": DTg,
         "UTg": Utg,
+        "DTg": DTg,
     }
     const dataConfig = {
         "d": d,

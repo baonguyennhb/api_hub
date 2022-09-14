@@ -180,7 +180,7 @@ const sendTagConfigMessage = async () => {
     const heatbeat = data_hub_cgf.heart_beat
     const allTag = await getMqttTag()
     const profileConfigTag = await query("SELECT * FROM ProfileConfig")
-    const diffTag = profileConfigTag.filter(({ name: name1, tag_type: type1  }) => !allTag.some(({ name: name2, tag_type: type2 }) => name2 === name1 && type1 === type2));
+    const diffTag = profileConfigTag.filter(({ name: name1, tag_type: type1 }) => !allTag.some(({ name: name2, tag_type: type2 }) => name2 === name1 && type1 === type2));
     console.log("Diff Tag:")
     console.log(diffTag)
     //===============>
@@ -246,7 +246,8 @@ const SendDataTagToDataHub = async () => {
       }
     })
     const topic = mqttTopicSendata
-    const valueTagMessage = ValueTagMessage(allTagWithData, groupId)
+    let timestamp = moment(allTagWithData[0]?.time_in_api_source).format()
+    const valueTagMessage = ValueTagMessage(allTagWithData, groupId, timestamp)
     //client.publish(topic, JSON.stringify(valueTagMessage), { qos: 1, retain: false });
     if (is_config) {
       let rs = client.publish(topic, JSON.stringify(valueTagMessage), { qos: 1, retain: false });
@@ -799,61 +800,75 @@ async function updateIsSent(tags) {
   }
 }
 
+
 // BackUp Data To Data-Hub
 
 async function BackUpMqtt() {
   try {
+    const topic = mqttTopicSendata
     if (client?.connected !== true) {
       console.log("No Mqtt Client!")
       return
     }
     const now = moment().format("YYYY-MM-DD HH:mm:ss")
-    let getDataBackup = await query("SELECT * FROM RawData WHERE is_had_data = 1 AND is_sent = 0 ORDER BY timestamp")
-    if (getDataBackup.length == 0) {
+    let getTimeNeedBackups = await query("SELECT DISTINCT timestamp  FROM RawData WHERE is_had_data = 1 AND is_sent = 0 ORDER BY timestamp")
+    //console.log(getTimeNeedBackups)
+    if (getTimeNeedBackups.length == 0) {
       console.log("No Data Backup!")
       return
     }
-
-    let dataBackup = getDataBackup.map(value => {
-      return {
-        ...value,
-        tag_id: value.tag_id,
-        name: `${value.metter_id}:${value.tag_name}`,
-        last_value: value.value
-      }
-    })
-    //console.log(dataBackup)
-
-    let i = 0
-
-    let handle = setInterval(async () => {
-      // Push Data Backup to DataHub
-
-      const topic = mqttTopicSendata
-      const valueTagMessage = BackUpValueTagMessage(dataBackup[i], groupId)
-      //client.publish(topic, JSON.stringify(valueTagMessage), { qos: 1, retain: false });
-
-      let rs = client?.publish(topic, JSON.stringify(valueTagMessage), { qos: 1, retain: false });
+    for (let i = 0; i < getTimeNeedBackups.length; i++) {
+      let getDataBackup = await query(`SELECT * FROM RawData WHERE timestamp='${getTimeNeedBackups[i].timestamp}'`)
+      let dataBackup = getDataBackup.map(value => {
+        return {
+          ...value,
+          tag_id: value.tag_id,
+          name: `${value.metter_id}:${value.tag_name}`,
+          last_value: value.value,
+          time_in_api_source: getTimeNeedBackups[i].timestamp
+        }
+      })
+      let time = moment(getTimeNeedBackups[i].timestamp).format()
+      const valueBackupTagMessage = BackUpValueTagMessage(dataBackup, groupId, time)
+      let rs = client?.publish(topic, JSON.stringify(valueBackupTagMessage), { qos: 1, retain: false });
       if (rs?.connected) {
-        console.log("Push Backup Success")
-        let updateIsSent = await query(`UPDATE RawData SET is_sent = 1 WHERE id=${dataBackup[i].id}`)
-        console.log("Update Send Status Success")
+        console.log(`Backup Data Sucessfully with time: ${time}`)
+        updateIsSent(dataBackup)
       }
-      i++
-      if (i > getDataBackup.length - 1) clearInterval(handle)
-    }, 2000)
+      await delay(2000)
+    }
+
+    // let i = 0
+
+    // let handle = setInterval(async () => {
+    //   // Push Data Backup to DataHub
+
+    //   const topic = mqttTopicSendata
+    //   const valueTagMessage = BackUpValueTagMessage(dataBackup[i], groupId)
+    //   //client.publish(topic, JSON.stringify(valueTagMessage), { qos: 1, retain: false });
+
+    //   let rs = client?.publish(topic, JSON.stringify(valueTagMessage), { qos: 1, retain: false });
+    //   if (rs?.connected) {
+    //     console.log("Push Backup Success")
+    //     let updateIsSent = await query(`UPDATE RawData SET is_sent = 1 WHERE id=${dataBackup[i].id}`)
+    //     console.log("Update Send Status Success")
+    //   }
+    //   i++
+    //   if (i > getDataBackup.length - 1) clearInterval(handle)
+    // }, 2000)
 
   } catch (error) {
     console.log("Push Backup Data Failed!")
   }
+  //setTimeout(BackUpMqtt, 2000)
 }
-// Run job every 30 minute
-// var job30min = new CronJob('*/1 * * * *', async function () {
-//   console.log("Backuping!")
-//   await BackUpMqtt()
-// }, null, true, 'Asia/Ho_Chi_Minh');
+BackUpMqtt()
+//Run job every 30 minute
+var job30min = new CronJob('*/5 * * * *', async function () {
+   console.log("Backuping!")
+   await BackUpMqtt()
+ }, null, true, 'Asia/Ho_Chi_Minh');
 
-//job30min.start()
-
+ job30min.start()
 
 

@@ -1,4 +1,4 @@
-const TagValue = (tags, groupId) => {
+const TagValue = (tags, groupId, timestamp) => {
     let d = {}
     let Val = {}
     for (let i = 0; i < tags.length; i++) {
@@ -9,7 +9,7 @@ const TagValue = (tags, groupId) => {
     }
     const dataTag = {
         "d": d,
-        "ts": new Date().toISOString()
+        "ts": timestamp
     }
     return dataTag
 }

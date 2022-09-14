@@ -1,16 +1,18 @@
-const TagBackUpValue = (tag, groupId) => {
+const BackupTagValue = (tags, groupId, timestamp) => {
     let d = {}
     let Val = {}
-    Val[`${tag.name}`] = tag.last_value
+    for (let i = 0; i < tags.length; i++) {
+        Val[`${tags[i].name}`] = tags[i].last_value
         d[`${groupId}`] = {
             "Val": Val,
         }
+    }
     const dataTag = {
         "d": d,
-        "ts": new Date().toISOString()
+        "ts": timestamp
     }
     return dataTag
 }
 
-module.exports = TagBackUpValue
+module.exports = BackupTagValue
 
