@@ -810,6 +810,9 @@ async function BackUpMqtt() {
       console.log("No Mqtt Client!")
       return
     }
+    if (!is_config) {
+      console.log("")
+    }
     const now = moment().format("YYYY-MM-DD HH:mm:ss")
     let getTimeNeedBackups = await query("SELECT DISTINCT timestamp  FROM RawData WHERE is_had_data = 1 AND is_sent = 0 ORDER BY timestamp")
     //console.log(getTimeNeedBackups)
