@@ -2,9 +2,9 @@
   "name": "api_hub",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "index1.js",
   "scripts": {
-    "start": "nodemon index --ignore data.json",
+    "start": "nodemon index1 --ignore data.json",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
