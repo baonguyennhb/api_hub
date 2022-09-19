@@ -388,7 +388,7 @@ async function ReadMetter() {
       }
     }
     //=====> Insert Raw Data
-    console.log("---> Read Data OK", moment().format('HH:mm:ss'))
+    console.log("------------> Read Data OK", moment().format('HH:mm:ss'))
 
   }
   catch (error) {
@@ -748,16 +748,7 @@ app.post("/api/v1/push-manual", async (req, res) => {
         error: "No connect with Data Hub, Please check connection!"
       })
     }
-    // let fromDay = moment(rangeTime[0]).startOf('days').format("YYYY-MM-DD HH:mm:ss")
-    // let toDay = moment(rangeTime[1]).endOf('days').format("YYYY-MM-DD HH:mm:ss")
-    // let metterIdsString = metterIds.map(value => `'${value}'`)
-    // let sqlGetTimeHistory = `SELECT DISTINCT timestamp FROM RawData WHERE timestamp>='${fromDay}' AND timestamp<='${toDay}'`
-    // const getTimeHistory = await query(sqlGetTimeHistory)
-    // console.log(getTimeHistory)
-    // for (let i = 0; i < 1; i++) {
-    //   const dataByHistoryTime = await query(`SELECT * FROM RawData WHERE metter_id IN(${metterIdsString}) AND timestamp='${getTimeHistory[i].timestamp}'`)
-    //   console.log(dataByHistoryTime)
-    // }
+    
     let fromTime, toTime
     if (rangeTime !== null) {
       fromTime = req.body.rangeTime[0]
@@ -784,8 +775,7 @@ app.post("/api/v1/push-manual", async (req, res) => {
     }
     // Get Tag infomation
     const _allTags = await query(`SELECT * FROM Tag WHERE metter_id IN(${metterIdsString})`)
-    //console.log(data.data)
-    //console.log(_allTags)
+   
     for (let i = 0; i < arrayDay.length; i++) {
       const data = await callAPI(api_source, arrayDay[i])
       let dataSource = data.data
@@ -818,8 +808,16 @@ app.post("/api/v1/push-manual", async (req, res) => {
       }
       await delay(5000)
     }
+    res.status(200).send({
+      code: 200,
+      message: "Push Completed!"
+    })
   } catch (error) {
-    console.log(error)
+    //console.log(error)
+    res.status(200).send({
+      code: 400,
+      error: "Push Failed, cause no data in range time!"
+    })
   }
 })
 
@@ -945,7 +943,7 @@ async function BackUpMqtt() {
       console.log("No Mqtt Client!")
       return
     }
-    if (!is_config && !is_connected) {
+    if (!is_config) {
       console.log("No Config Tag!")
       return
     }
@@ -955,7 +953,7 @@ async function BackUpMqtt() {
     for (var i = 0; i < allTag.length; i++) {
       result_array_tag_id[i] = allTag[i].id;
     }
-    let getTimeNeedBackups = await query(`SELECT DISTINCT timestamp  FROM RawData WHERE WHERE tag_id IN (${result_array_tag_id.toString()}) AND is_had_data = 1 AND is_sent = 0 ORDER BY timestamp`)
+    let getTimeNeedBackups = await query(`SELECT DISTINCT timestamp  FROM RawData  WHERE tag_id IN (${result_array_tag_id.toString()}) AND is_had_data = 1 AND is_sent = 0 ORDER BY timestamp`)
     //console.log(getTimeNeedBackups)
     if (getTimeNeedBackups.length == 0) {
       console.log("No Data Backup!")
@@ -982,12 +980,13 @@ async function BackUpMqtt() {
       await delay(2000)
     }
   } catch (error) {
+    console.log(error)
     console.log("Push Backup Data Failed!")
   }
 }
 BackUpMqtt()
 //Run job every 30 minute
-var job30min = new CronJob('*/2 * * * *', async function () {
+var job30min = new CronJob('*/30 * * * *', async function () {
   console.log("Backuping!")
   await BackUpMqtt()
 }, null, true, 'Asia/Ho_Chi_Minh');
