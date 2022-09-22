@@ -282,16 +282,27 @@ async function callAPI(api_source, start) {
     let params
     let sNoList = await api_source.metters.map(metter => metter.serial)
     let d = {}
+ 
     params = {
       sNoList: sNoList.toString(), // 20697927, //sNoList,  //20698013,20697912
-      sTime: startOfDate     // startOfDate
+      //sTime: startOfDate     // startOfDate
     }
+    params[`${api_source.key_time}`] = startOfDate
     const response = await axios.get(api_source.url, { params })
     let xmlData = response.data
     let jsonData = xmlParser.toJson(xmlData)
     const valueData = JSON.parse(jsonData).DataTable['diffgr:diffgram'].DocumentElement?.dtResult
+    //console.log(valueData)
+    let customValueData = valueData.map(value => {
+      return {
+        ...value,
+        SO_CTO: (value?.METER_NO !== undefined) ?  value?.METER_NO : value.SO_CTO,
+        NGAYGIO: (value?.DATE_TIME!== undefined) ? value.DATE_TIME : value.NGAYGIO
+      }
+    })
+    //console.log(customValueData[customValueData.length - 1])
     return {
-      data: valueData,
+      data: customValueData,
       ts: moment().format("YYYY-MM-DD HH:mm:ss")
     }
   } catch (error) {
@@ -319,11 +330,11 @@ async function ReadMetter() {
     //====> Update LastValue in Tag Table
 
     let sql = "SELECT * " +
-      "FROM ApiSource " +
+      "FROM ApiSource " +   
       "LEFT JOIN Metter " +
       "ON ApiSource.id = Metter.api_source " +
       "LEFT JOIN Tag " +
-      "ON Tag.metter_id = Metter.metter_id"
+      "ON Tag.metter_id = Metter.metter_id AND Tag.api_source = Metter.api_source" 
 
     const allTags = await query(sql)
 
@@ -331,18 +342,20 @@ async function ReadMetter() {
     for (let i = 0; i < api_sources.length; i++) {
       const api_source = api_sources[i];
       dataOfAllApiSource[`${api_source.connection_name}`] = await callAPI(api_source, start)
+      await delay(5000)
     }
-
     for (let i = 0; i < allTags.length; i++) {
       if (allTags[i].connection_name && allTags[i].metter_id && allTags[i].parameter) {
         let apiSource = allTags[i].connection_name
+        //console.log(apiSource)
         let apiSourceId = allTags[i].api_source
         let serialMetter = allTags[i].serial
         let parameterTag = allTags[i].parameter
+        //console.log(parameterTag)
         let dataType = allTags[i].data_type
         let scale = allTags[i].scale
         let metterId = allTags[i].metter_id
-        let filterDataBySerial = dataOfAllApiSource[`${apiSource}`].data?.filter(value => value.SO_CTO === serialMetter.toString())
+        let filterDataBySerial = dataOfAllApiSource[`${apiSource}`].data?.filter(value => value?.SO_CTO === serialMetter.toString())
         let timestamp = dataOfAllApiSource[`${apiSource}`].ts
         let tagData = filterDataBySerial?.length ? filterDataBySerial[filterDataBySerial.length - 1][`${parameterTag}`] : undefined
         let time_in_api_source = filterDataBySerial?.length ? filterDataBySerial[filterDataBySerial.length - 1][`NGAYGIO`] : undefined
@@ -355,6 +368,7 @@ async function ReadMetter() {
             dataByScale = tagData
           }
           let sqlUpdateValue = `UPDATE Tag SET last_value = '${dataByScale}', timestamp = '${timestamp}', time_in_api_source = '${time_in_api_source}' where api_source = '${apiSourceId}' AND metter_id = '${metterId}' AND parameter= '${parameterTag}'`
+          //console.log(sqlUpdateValue)
           const updated = await query(sqlUpdateValue)
         }
       }
@@ -373,10 +387,9 @@ async function ReadMetter() {
       if (all_tags && data_sources.data) {
         for (let j = 0; j < all_tags.length; j++) {
           const tag = all_tags[j];
-          //console.log(tag)
           const result = data_sources.data.find(({ NGAYGIO, SO_CTO }) => NGAYGIO === tag.timestamp.toString() && SO_CTO == tag.serial.toString());
 
-          let _tag = await query(`SELECT * From Tag where metter_id = '${tag.metter_id}' and parameter = '${tag.param}'`)
+          let _tag = await query(`SELECT * From Tag where api_source = '${tag.api_source}' and metter_id = '${tag.metter_id}' and parameter = '${tag.param}'`)
 
           if (result) {
             //console.log('---> tag', _tag[0].data_type, result[tag.param], _tag[0].scale)
@@ -400,7 +413,6 @@ async function ReadMetter() {
 }
 
 ReadMetter()
-
 
 
 async function getMetterInterval() {
@@ -508,7 +520,7 @@ async function getTagInRawNeedupdate(api_source, start1) {
   try {
     let start = moment(start1).format('YYYY-MM-DD HH:mm:ss')
     let end = moment().format('YYYY-MM-DD HH:mm:ss')
-    let sql = `SELECT DISTINCT timestamp, serial, param, id, metter_id  FROM RawData WHERE timestamp BETWEEN '${start}' AND '${end}' and is_had_data = 0 and api_source = ${api_source}`
+    let sql = `SELECT DISTINCT timestamp, serial, param, id, metter_id, api_source  FROM RawData WHERE timestamp BETWEEN '${start}' AND '${end}' and is_had_data = 0 and api_source = ${api_source}`
     const tags = await query(sql)
     return tags
   } catch (error) {
@@ -855,15 +867,13 @@ async function CheckDeviceStatus() {
     }
 
     let testTime = "2022-06-18 00:00:00"
-
     console.log("Time Check: " + moment(start).format("YYYY-MM-DD HH:mm:ss"))
-
     //====> Update LastValue in Tag Table
-
     let dataOfAllApiSource = {}
     for (let i = 0; i < api_sources.length; i++) {
       const api_source = api_sources[i];
       dataOfAllApiSource[`${api_source.connection_name}`] = await callAPI(api_source, start)
+      await delay(5000)
     }
 
     let sql = "SELECT * " +
@@ -873,7 +883,6 @@ async function CheckDeviceStatus() {
 
     const allMetter = await query(sql)
     //console.log(allMetter)
-
     for (let i = 0; i < allMetter.length; i++) {
       let apiSource = allMetter[i].connection_name
       let serialMetter = allMetter[i].serial
@@ -884,8 +893,8 @@ async function CheckDeviceStatus() {
       // console.log(moment(NGAYGIO).unix())
       if (NGAYGIO !== undefined) {
         let deltaTime = moment().unix() - moment(NGAYGIO).unix()
-        let statusDevice = (deltaTime > 7200) ? 0 : 1
-        //console.log(deltaTime)
+        //let statusDevice = (deltaTime > 7200) ? 0 : 1
+        let statusDevice = ( filterDataBySerial.length > 0 ) ? 1 : 0
         let updatedDevice = await query(`UPDATE Metter SET status= ${statusDevice} WHERE id=${id} `)
       }
     }
@@ -898,7 +907,7 @@ async function CheckDeviceStatus() {
   }
 }
 
-setInterval(CheckDeviceStatus, 2 * 60 * 1000)
+setInterval(CheckDeviceStatus, 0.5 * 60 * 1000)
 
 //================================================================
 

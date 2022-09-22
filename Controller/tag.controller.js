@@ -3,7 +3,7 @@ const common = require('../Common/query')
 const query = common.query
 var fsPromises = require('fs').promises;
 
-function trimObject(obj){
+function trimObject(obj) {
   var trimmed = JSON.stringify(obj, (key, value) => {
     if (typeof value === 'string') {
       return value.trim();
@@ -15,12 +15,12 @@ function trimObject(obj){
 
 module.exports.GetList = async (req, res) => {
   try {
-    const { metterId } = req.query
+    const { metterId, apiSourceId } = req.query
     let sql
     let params = []
     if (metterId) {
-      sql = 'SELECT * FROM Tag WHERE metter_id=?'
-      params = [metterId]
+      sql = 'SELECT * FROM Tag WHERE metter_id=? AND api_source=?'
+      params = [metterId, apiSourceId]
     } else {
       sql = 'SELECT * FROM Tag'
       params = []
@@ -122,7 +122,7 @@ module.exports.postEdit = async (req, res) => {
     let sql_update_raw_data = `UPDATE RawData SET tag_name = '${data.name}' where tag_id = ${id}`
     //let sql = 'SELECT * FROM Metter'
     const tag = await query(sql)
-    const updateTagRawData = await  query(sql_update_raw_data)
+    const updateTagRawData = await query(sql_update_raw_data)
     const dataSend = {
       code: 200,
       message: "OK",
@@ -157,9 +157,9 @@ module.exports.delDelete = async (req, res) => {
 
 module.exports.MonitorTag = async (req, res) => {
   try {
-    const { metterId } = req.query
-    let sql = 'SELECT * FROM Tag WHERE metter_id=?'
-    let params = [metterId]
+    const { metterId, apiSourceId } = req.query
+    let sql = 'SELECT * FROM Tag WHERE metter_id=? AND api_source=?'
+    let params = [metterId, apiSourceId]
     const tags = await query(sql, params)
     const tagData = tags.map(tag => {
       return {
@@ -186,15 +186,15 @@ module.exports.MonitorTagLog = async (req, res) => {
     const { tagId } = req.query
     const now = moment().format("YYYY-MM-DD HH:mm:ss")
     let sql = `SELECT * FROM RawData WHERE tag_id=? AND timestamp<?  ORDER BY timestamp DESC`
-    let tagInfo = await query ('SELECT * FROM Tag WHERE id=?',[tagId])
+    let tagInfo = await query('SELECT * FROM Tag WHERE id=?', [tagId])
     let tagName = tagInfo[0]?.name
     let params = [tagId, now]
     const tags = await query(sql, params)
     const tagData = tags.map(tag => {
-      return {
-        ...tag,
-        tag_name: tagName
-      }
+        return {
+          ...tag,
+          tag_name: tagName
+        }
     })
     const dataSend = {
       code: 200,
