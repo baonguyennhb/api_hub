@@ -77,7 +77,6 @@ module.exports.postAdd = async (req, res) => {
       }
       sql = sql + ` where id = ${id}`
 
-      console.log(sql)
                   
       const result = await query(sql)
       const dataSend = {

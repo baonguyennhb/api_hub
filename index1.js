@@ -291,9 +291,15 @@ async function callAPI(api_source, start) {
     const response = await axios.get(api_source.url, { params })
     let xmlData = response.data
     let jsonData = xmlParser.toJson(xmlData)
-    const valueData = JSON.parse(jsonData).DataTable['diffgr:diffgram'].DocumentElement?.dtResult
+    const valueDataTemp = JSON.parse(jsonData).DataTable['diffgr:diffgram'].DocumentElement?.dtResult
+    let valueData = []
+    if (sNoList.length === 1 && api_source.key_time === "sDate") {
+      valueData.push(valueDataTemp)
+    } else {
+      valueData = valueDataTemp
+    }
     //console.log(valueData)
-    let customValueData = valueData.map(value => {
+    let customValueData = valueData?.map(value => {
       return {
         ...value,
         SO_CTO: (value?.METER_NO !== undefined) ?  value?.METER_NO : value.SO_CTO,
@@ -780,13 +786,13 @@ app.post("/api/v1/push-manual", async (req, res) => {
     const getApiSource = await query(`SELECT * FROM ApiSource WHERE id = ${apiSourceId}`)
     // Get Serial Metter
     let metterIdsString = metterIds.map(value => `'${value}'`)
-    const metters = await query(`SELECT * FROM Metter WHERE metter_id IN(${metterIdsString})`)
+    const metters = await query(`SELECT * FROM Metter WHERE metter_id IN(${metterIdsString}) AND api_source = ${apiSourceId}`)
     const api_source = {
       ...getApiSource[0],
       metters: metters
     }
     // Get Tag infomation
-    const _allTags = await query(`SELECT * FROM Tag WHERE metter_id IN(${metterIdsString})`)
+    const _allTags = await query(`SELECT * FROM Tag WHERE metter_id IN(${metterIdsString}) AND api_source = ${apiSourceId}`)
    
     for (let i = 0; i < arrayDay.length; i++) {
       const data = await callAPI(api_source, arrayDay[i])

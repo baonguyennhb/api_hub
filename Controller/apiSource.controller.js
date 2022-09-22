@@ -66,7 +66,6 @@ module.exports.postEdit = async (req, res) => {
     try {
         let id = req.query.id
         let data = req.body
-        console.log(req.query)
         //let sql = `SELECT * FROM Metter `
         let sql = `UPDATE ApiSource SET connection_name = '${data.connection_name}', url = '${data.url}', description = '${data.description}', interval = ${data.interval} , connection_time = ${data.check_connection_time} where id = ${id}`
 
@@ -86,7 +85,6 @@ module.exports.postEdit = async (req, res) => {
 module.exports.delDelete = async (req, res) => {
     try {
         let id = req.query.id
-        console.log(req.query)
         //let data = req.body
         //let sql = `SELECT * FROM Metter `
         let sql = `DELETE FROM ApiSource where id = ${id}`

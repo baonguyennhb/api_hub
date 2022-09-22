@@ -116,7 +116,6 @@ module.exports.postEdit = async (req, res) => {
 module.exports.delDelete = async (req, res) => {
   try {
     let id = req.query.id
-    console.log(req.query)
     //let data = req.body
     //let sql = `SELECT * FROM Metter `
     let sql = `DELETE FROM Metter where id = ${id}`

@@ -64,10 +64,8 @@ module.exports.postAdd = async (req, res) => {
     const tagCreate = await query(sql)
 
     //console.log(devices)
-    console.log(data.metterId)
     let str_sql = `SELECT * FROM Metter where metter_id = '${data.metterId}' and api_source = ${data.apiSource} `
     let metter = await query(str_sql)
-    console.log(str_sql)
     let tag = await query(`SELECT * FROM Tag where metter_id = '${data.metterId}' and api_source = ${data.apiSource} and parameter = '${data.parameter}'`)
 
     //console.log(tag)
@@ -116,7 +114,7 @@ module.exports.postEdit = async (req, res) => {
   try {
     let id = req.query.id
     let data = req.body
-    console.log(req.query)
+    
     //let sql = `SELECT * FROM Metter `
     let sql = `UPDATE Tag SET name = '${data.name}', scale = '${data.scale}', data_type = '${data.data_type}' where id = ${id}`
     let sql_update_raw_data = `UPDATE RawData SET tag_name = '${data.name}' where tag_id = ${id}`
