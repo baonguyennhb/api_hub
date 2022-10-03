@@ -165,7 +165,8 @@ module.exports.MonitorTag = async (req, res) => {
         tagName: tag.name,
         tagParameter: tag.parameter,
         value: tag.last_value,
-        timestamp: tag.timestamp
+        timestamp: tag.timestamp,
+        time_in_api_source: tag.time_in_api_source
       }
     })
     const dataSend = {
