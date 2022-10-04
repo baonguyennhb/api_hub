@@ -54,6 +54,7 @@ async function Init() {
     port: 1883,
     username: config[0].username, //     'Goy2waYPAGQP:n3Q78J2BBKeK',
     password: config[0].password, //    'CVemCimzm0duGLr6OnvJ',
+    clientId: `EdgeAgent_${Math.floor(Math.random() * 10)}`,
     reconnectPeriod: 30000,
     connectTimeout: 30000
   };
