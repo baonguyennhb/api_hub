@@ -24,8 +24,8 @@ const mqtt = require('mqtt');
 
 // Variable
 
-const groupId = 'scada_qQ2N60h1DmL'
-const mqttUrl = "mqtt://rabbitmq-001-pub.hz.wise-paas.com.cn:1883"
+const groupId = 'scada_MJwWrVpevTr4'
+const mqttUrl = "mqtt://10.129.167.251:1883"
 const mqttTopicConn = `iot-2/evt/waconn/fmt/${groupId}`
 const mqttTopicCfg = `iot-2/evt/wacfg/fmt/${groupId}`
 const mqttTopicSendata = `iot-2/evt/wadata/fmt/${groupId}`
@@ -33,8 +33,8 @@ const HbtInterval = 5000
 
 var options = {
     port: 1883,
-    username: 'Goy2waYPAGQP:n3Q78J2BBKeK',
-    password: 'CVemCimzm0duGLr6OnvJ',
+    username: 'Bbql3pmm5weM:R4QKEkAmkPq9',
+    password: 'G6gc1m1a33FSDja1VBVR',
 };
 // Connect MQTT Broker 
 
@@ -94,22 +94,50 @@ client.on("connect", ack => {
     try {
         console.log("MQTT Client Connected!")
         const dataConn = connectJson()
-        const dataConfig = updateTag()
+        //const dataConfig = updateTag()
         client.publish(mqttTopicConn, JSON.stringify(dataConn), { qos: 1, retain: true })
         console.log(" Connect success!")
         setInterval(sendHeartBeatMessage, HbtInterval)
         // Send Data
-        client.publish(mqttTopicCfg, JSON.stringify(dataConfig))
-        console.log(" Config tag success!")
-        setInterval(async () => {
-            const data = await callAPI()
-            client.publish(mqttTopicSendata, JSON.stringify(data), { qos: 1, retain: true })
-            console.log("Send Data")
-        }, 30 * 1000)
+        //client.publish(mqttTopicCfg, JSON.stringify(dataConfig))
+        //console.log(" Config tag success!")
+        // setInterval(async () => {
+        //     const data = await callAPI()
+        //     client.publish(mqttTopicSendata, JSON.stringify(data), { qos: 1, retain: true })
+        //     console.log("Send Data")
+        // }, 30 * 1000)
     } catch (error) {
         console.log(error)
     }
 
+})
+client.on("error", async function (ack) {
+    try {
+        console.log("MQTT Error!")
+    } catch (error) {
+        console.log(error)
+    }
+})
+client.on("close", ack => {
+    try {
+        console.log("MQTT close!")
+    } catch (error) {
+        console.log(error)
+    }
+})
+client.on("disconnect", ack => {
+    try {
+        console.log("MQTT disconnect!")
+    } catch (error) {
+        console.log(error)
+    }
+})
+client.on("offline", ack => {
+    try {
+        console.log("MQTT offline!")
+    } catch (error) {
+        console.log(error)
+    }
 })
 const sendHeartBeatMessage = () => {
     let d = {}
@@ -571,7 +599,7 @@ async function CallDataFromApiSource(url) {
 
 async function getMetterInterval() {
     var nextExecutionTime = await getMetterInterval();
-        console.log(moment().format('hh:mm:ss'))
+    console.log(moment().format('hh:mm:ss'))
     let sql = 'SELECT * FROM ApiSource'
     const result = await query(sql)
     return result[0].interval * 1000
@@ -612,7 +640,7 @@ async function handleCallDataFromApiSource() {
     let sql = "SELECT * FROM ApiSource"
     const apiList = await query(sql)
     for (let i = 0; i < array.length; i++) {
-       CallDataFromApiSource(apiList[i].url)
+        CallDataFromApiSource(apiList[i].url)
     }
 
 }
