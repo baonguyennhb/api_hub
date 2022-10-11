@@ -123,9 +123,11 @@ module.exports.ExportExcel = async (req, res) => {
         ws3.cell(i + 2, 5).string(tagTable[i].parameter)
         ws3.cell(i + 2, 6).string(tagTable[i].data_type)
         ws3.cell(i + 2, 7).number(tagTable[i].scale)
-        ws3.cell(i + 2, 8).string(tagTable[i].note)
     }
 
     let file_name = 'API_HUB_CONFIG' + '.xlsx'
+    res.setHeader('Access-Control-Expose-Headers', "Content-Disposition"); //IMPORTANT FOR React.js content-disposition get Name
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader("Content-Disposition", "attachment; filename=" + file_name);
     wb.write('./Exports/' + file_name, res);
 }
