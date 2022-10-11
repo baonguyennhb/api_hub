@@ -38,6 +38,7 @@ createTableUser()
 const port = 4000
 
 const app = express()
+app.use(express.static('./Public'))
 app.use(cors())
 app.use(bodyParser.json()) // for parsing application/json
 app.use(bodyParser.urlencoded({ extended: true })) // for parsing application/x-www-form-urlencoded
@@ -153,14 +154,18 @@ async function Init() {
 //Init()
 
 async function PublishDataHub() {
+  let nextPublish = 5 * 1000 //Unit ms
   let data_hub_cgf = await getDataHubConfig()
-  let nextPublish = data_hub_cgf.interval * 1000
-  SendDataTagToDataHub()
+  if (data_hub_cgf?.interval) {
+    nextPublish = data_hub_cgf.interval * 1000
+  }
+  if (is_config) {
+    SendDataTagToDataHub()
+  }
   setTimeout(PublishDataHub, nextPublish)
 }
 
 PublishDataHub()
-
 
 async function getDataHubConfig() {
   try {
@@ -276,7 +281,6 @@ const SendDataTagToDataHub = async () => {
   }
 
 }
-
 
 const getMqttTag = async () => {
   let sql = "SELECT * FROM MqttTag"
@@ -434,13 +438,16 @@ ReadMetter()
 
 async function getMetterInterval() {
   try {
+    let metterInterval = 30
     let sql = 'SELECT * FROM ApiSource'
     const result = await query(sql)
-    return result[0].interval * 1000
+    if (result[0]?.interval) {
+      metterInterval = result[0].interval
+    }
+    return metterInterval * 1000
   } catch (error) {
     console.log(error)
   }
-
 }
 
 async function getApiSource() {
@@ -516,6 +523,7 @@ const deviceTagRouter = require('./Routes/device_tag.route')
 const userRouter = require('./Routes/user.route')
 const apiSourceRouter = require('./Routes/apiSource.route');
 const dataHubRouter = require('./Routes/dataHub.route');
+const uploadRouter = require('./Routes/uploadFile.route');
 
 const { stat } = require('fs');
 const delay = require('delay');
@@ -527,6 +535,7 @@ app.group('/api/v1', (router) => {
   router.use('/tag', tagRouter)
   router.use('/device_tag', deviceTagRouter)
   router.use('/data-hub', dataHubRouter)
+  router.use('/upload', uploadRouter)
 })
 
 // Delete Tag Mqtt
@@ -934,7 +943,7 @@ async function delRawData() {
 
 }
 
-//=================================== BackUp Function=============
+//=================================== BackUp Function================
 // Update Mqtt Tag After Send Data-Hub Sucess
 
 async function updateIsSent(tags) {
@@ -1006,7 +1015,9 @@ async function BackUpMqtt() {
 //Run job every 30 minute
 var job30min = new CronJob('*/30 * * * *', async function () {
   console.log("Backuping!")
-  await BackUpMqtt()
+  if (is_config) {
+    await BackUpMqtt()
+  }
 }, null, true, 'Asia/Ho_Chi_Minh');
 
 job30min.start()
