@@ -477,6 +477,7 @@ async function setTagInRawData() {
 
     let sql = `SELECT Tag.id as TagId, * FROM Tag 
                 JOIN Metter on Metter.metter_id = Tag.metter_id and Metter.api_source = Tag.api_source
+                JOIN  ApiSource on ApiSource.id = Tag.api_source
               `
     const tags = await query(sql)
 
@@ -485,6 +486,10 @@ async function setTagInRawData() {
     for (let i = 0; i < 48; i++) {
       timestamp_str = start.format('YYYY-MM-DD HH:mm:ss')
       await tags.forEach(async e => {
+        //console.log(e.name )
+        if(e.key_time == 'sDate'){
+          timestamp_str = start.format('YYYY-MM-DD 00:00:00')
+        }
         let sql2 = `INSERT INTO RawData (timestamp, api_source, tag_id, metter_id, serial, param, tag_name) Values ( '${timestamp_str}', ${e.api_source}, ${e.TagId}, '${e.metter_id}', ${e.serial}, '${e.parameter}', '${e.name}' )`
         try {
           await query(sql2)
@@ -860,7 +865,6 @@ app.post("/api/v1/push-manual", async (req, res) => {
 var job0h5 = new CronJob('5 0 * * *', async function () {
   await setTagInRawData()
 
-  await delRawData()
 }, null, true, 'Asia/Ho_Chi_Minh');
 
 job0h5.start()
@@ -933,7 +937,7 @@ setInterval(CheckDeviceStatus, 5 * 60 * 1000)
 async function delRawData() {
   try {
     let end = moment().subtract(3, 'days').startOf('day').format('YYYY-MM-DD HH:mm:ss')
-    let sql_str = `DELETE FROM RawData WHERE timestamp < '${end}'`
+    let sql_str = `DELETE FROM RawData Where id in (select id from RawData WHERE timestamp < '${end}' order by id LIMIT 200) `
     console.log(sql_str)
     let rs = await query(sql_str)
     console.log('====> Deleted' + rs)
@@ -942,6 +946,17 @@ async function delRawData() {
   }
 
 }
+
+
+//Run job every 5 minute
+var job5min = new CronJob('*/5 * * * *', async function () {
+  await delRawData();
+}, null, true, 'Asia/Ho_Chi_Minh');
+
+job5min.start()
+
+
+
 
 //=================================== BackUp Function================
 // Update Mqtt Tag After Send Data-Hub Sucess
@@ -1018,6 +1033,7 @@ var job30min = new CronJob('*/30 * * * *', async function () {
   if (is_config) {
     await BackUpMqtt()
   }
+
 }, null, true, 'Asia/Ho_Chi_Minh');
 
 job30min.start()
