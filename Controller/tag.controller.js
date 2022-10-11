@@ -66,13 +66,16 @@ module.exports.postAdd = async (req, res) => {
     //console.log(devices)
     let str_sql = `SELECT * FROM Metter where metter_id = '${data.metterId}' and api_source = ${data.apiSource} `
     let metter = await query(str_sql)
+    let api_source = await query(`SELECT * FROM ApiSource where id = ${data.apiSource}`)
     let tag = await query(`SELECT * FROM Tag where metter_id = '${data.metterId}' and api_source = ${data.apiSource} and parameter = '${data.parameter}'`)
 
     //console.log(tag)
 
     for (let i = 0; i < 48; i++) {
       timestamp_str = moment(start).format('YYYY-MM-DD HH:mm:ss')
-
+      if(api_source[0].key_time == 'sDate'){
+        timestamp_str = start.format('YYYY-MM-DD 00:00:00')
+      }
       let sql2 = `INSERT INTO RawData (timestamp, api_source, metter_id, tag_name, serial, param, tag_id) 
       Values ( '${timestamp_str}', ${data.apiSource}, '${data.metterId}', '${data.name}', ${metter[0].serial}, '${data.parameter}', ${tag[0].id} )`
       const result2 = await query(sql2)
