@@ -1,4 +1,4 @@
-const TagValue = (tags, groupId, timestamp) => {
+const BackupTagValue = (tags, groupId, timestamp) => {
     let d = {}
     let Val = {}
     for (let i = 0; i < tags.length; i++) {
@@ -14,5 +14,5 @@ const TagValue = (tags, groupId, timestamp) => {
     return dataTag
 }
 
-module.exports = TagValue
+module.exports = BackupTagValue
 
