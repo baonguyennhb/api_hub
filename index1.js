@@ -660,22 +660,18 @@ app.post("/api/v1/data-hub/connect", async (req, res) => {
       client.end(true, {}, async () => {
         await Init()
         await delay(2000)
-        // client.on("connect", () => {
         if (is_connected) {
           res.status(200).send({
             code: 200,
             message: "Connect Sucessfully!"
           })
         }
-        // })
-        // client.on("error", () => {
         else {
           res.status(200).send({
             code: 400,
             error: "Connect Failed, Please check infomation again!"
           })
         }
-        // })
       })
     } else {
       await Init()
@@ -686,8 +682,6 @@ app.post("/api/v1/data-hub/connect", async (req, res) => {
           message: "Connect Sucessfully!"
         })
       }
-      // })
-      // client.on("error", () => {
       else {
         res.status(200).send({
           code: 400,
