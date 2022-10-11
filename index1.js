@@ -11,6 +11,29 @@ const mqtt = require('mqtt');
 var EventEmitter = require('events')
 const CronJob = require('cron').CronJob;
 
+// Create Table IF NOT EXISTS
+
+const {
+  createTableDataHub,
+  createTableApiSource,
+  createTableMetter,
+  createTableTag,
+  createTableMqttTag,
+  createTableRawData,
+  createTableProfileConfig,
+  createTableUser
+} = require("./Common/createTable")
+
+createTableDataHub()
+createTableApiSource()
+createTableMetter()
+createTableTag()
+createTableRawData()
+createTableMqttTag()
+createTableProfileConfig()
+createTableUser()
+
+//Create Table IF NOT EXISTS
 
 const port = 4000
 
@@ -135,13 +158,18 @@ async function PublishDataHub() {
   SendDataTagToDataHub()
   setTimeout(PublishDataHub, nextPublish)
 }
+
 PublishDataHub()
 
 
 async function getDataHubConfig() {
-  let sql = "SELECT * FROM DataHub"
-  const data_hub_cgf = await query(sql)
-  return data_hub_cgf[0]
+  try {
+    let sql = "SELECT * FROM DataHub"
+    const data_hub_cgf = await query(sql)
+    return data_hub_cgf[0]
+  } catch (error) {
+    console.log(error)
+  }
 }
 
 const sendHeartBeatMessage = () => {
