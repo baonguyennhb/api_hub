@@ -18,7 +18,7 @@ module.exports.Login = async (req, res) => {
     const user = await query(sql, params)
     if (user.length > 0) {
       code = 200
-      name = user[0].name
+      name = user[0].name,
       id = user[0].id,
       token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2MmIwODdlYjg2NTc1ODM1NThmODhlNTIiLCJpYXQiOjE2NTk0MzMzMjQsImV4cCI6MTY5MDk2OTMyNH0.5K8hBS6B31SZuuaQtjwTCWsorLq8vV4EpAvzZCtaq64"
       message = "Login successed"
@@ -29,6 +29,7 @@ module.exports.Login = async (req, res) => {
       "data": {
         "id": id,
         "name": name,
+        "username": username
       },
       "meta": {
         "token": token,
@@ -80,22 +81,18 @@ module.exports.getEdit = async (req, res) => {
 
 module.exports.postEdit = async (req, res) => {
   try {
-    let id = req.query.id
-    let data = req.body
+    let id = req.params.id
+    let {name, username, password} = req.body
     let sql = ""
-
-    sql = `UPDATE users SET email = '${data.email}', name = '${data.name}' `
-    if (data.password) {
-      sql = sql + `password = '${data.password}'`
+    sql = `UPDATE Users SET username = '${username}', name = '${name}' `
+    if (password) {
+      sql = sql + `, password = '${password}'`
     }
     sql = sql + ` where id = ${id}`
-
-
     const result = await query(sql)
     const dataSend = {
       code: 200,
-      message: "OK",
-      data: data
+      message: "Edit Account sucessfully!",
     }
     res.status(200).send(dataSend)
   } catch (error) {

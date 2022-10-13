@@ -2,13 +2,13 @@ FROM node:latest
 
 EXPOSE 4000
 
-WORKDIR /app
+WORKDIR /usr/src/app
 
 RUN npm i npm@latest -g
 
 COPY package.json package-lock.json ./
 
-COPY . .
+COPY . /usr/src/app
 
 RUN npm install
 

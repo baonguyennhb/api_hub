@@ -7,13 +7,13 @@ metadata:
 spec:
   containers:
     - name: api-hub-server
-      image: 192.168.5.220:5000/api-hub-server:v1.10
-      volumeMounts:
-        - name: sqlite # sqlite volume
-          mountPath: /app/Database # mounted at /app/Database in the container
+      image: 192.168.5.220:5000/api-hub-server:v2.3
+      # volumeMounts:
+      #   - name: sqlite # sqlite volume
+      #     mountPath: /usr/src/app/Database # mounted at /app/Database in the container
       ports:
         - containerPort: 4000
-  volumes:
-    - name: sqlite
-      hostPath: # hostPath volume
-        path: /var/lib/api-hub
+  # volumes:
+  #   - name: sqlite
+  #     hostPath: # hostPath volume
+  #       path: /var/lib/api-hub
