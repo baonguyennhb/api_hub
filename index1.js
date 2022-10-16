@@ -384,7 +384,7 @@ async function ReadMetter() {
         if (tagData !== undefined) {
           let dataByScale
           if (dataType === "Number") {
-            dataByScale = tagData * scale
+            dataByScale = 100 * parseFloat( tagData * scale) / 100
           } else {
             dataByScale = tagData
           }
@@ -414,7 +414,7 @@ async function ReadMetter() {
 
           if (result) {
             //console.log('---> tag', _tag[0].data_type, result[tag.param], _tag[0].scale)
-            let _value = _tag[0]?.data_type == "Number" ? parseFloat(result[tag.param]) * parseFloat(_tag[0].scale) : result[tag.param]
+            let _value = _tag[0]?.data_type == "Number" ? (100 * parseFloat(result[tag.param]) * parseFloat(_tag[0].scale)) /100 : result[tag.param]
             let rs = await query(`UPDATE RawData SET value = '${_value}', is_had_data = 1 WHERE id = ${tag.id}`);
           }
 
@@ -789,7 +789,7 @@ app.post("/api/v1/push-manual", async (req, res) => {
             if (resultDataByMetter) {
               // console.log("Data: ")
               // console.log(resultDataByMetter)
-              let value = (_allTags[z].data_type === "Number") ? parseFloat(resultDataByMetter[_allTags[z].parameter]) : resultDataByMetter[_allTags[z].parameter]
+              let value = (_allTags[z].data_type === "Number") ? (100 * (parseFloat(resultDataByMetter[_allTags[z].parameter])) * _allTags[z].scale )/100 : resultDataByMetter[_allTags[z].parameter]
               tagTempArray.push({
                 name: `${_allTags[z].metter_id}:${_allTags[z].name}`,
                 last_value: value
@@ -819,7 +819,7 @@ app.post("/api/v1/push-manual", async (req, res) => {
           const resultDataByMetter = dataSource.find(({ SO_CTO }) => SO_CTO === serial.toString());
           // console.log("Data: ")
           // console.log(resultDataByMetter)
-          let value = (_allTags[z].data_type === "Number") ? parseFloat(resultDataByMetter[_allTags[z].parameter]) : resultDataByMetter[_allTags[z].parameter]
+          let value = (_allTags[z].data_type === "Number") ? ( 100 * parseFloat(resultDataByMetter[_allTags[z].parameter]) * _allTags[z].scale ) / 100  : resultDataByMetter[_allTags[z].parameter]
           tagTempArray.push({
             name: `${_allTags[z].metter_id}:${_allTags[z].name}`,
             last_value: value
