@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-hub-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      component: api-hub-server
+  template:
+    metadata:
+      labels:
+        component: api-hub-server
+    spec:
+      containers:
+        - name: api-hub-server
+          image: 192.168.196.28:5000/api-hub-server:v1.0
+          ports:
+            - containerPort: 4000
