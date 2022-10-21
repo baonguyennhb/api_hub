@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: api-hub-server
+  name: api-hub-server-deployment
 spec:
   replicas: 1
   selector:
