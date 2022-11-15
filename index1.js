@@ -417,7 +417,7 @@ async function ReadMetter() {
         if (tagData !== undefined) {
           let dataByScale
           if (dataType === "Number") {
-            dataByScale = 100 * parseFloat(tagData * scale) / 100
+            dataByScale =  parseFloat(parseFloat(tagData * scale).toFixed(4))
           } else {
             dataByScale = tagData
           }
@@ -447,7 +447,7 @@ async function ReadMetter() {
 
           if (result) {
             //console.log('---> tag', _tag[0].data_type, result[tag.param], _tag[0].scale)
-            let _value = _tag[0]?.data_type == "Number" ? (100 * parseFloat(result[tag.param]) * parseFloat(_tag[0].scale)) / 100 : result[tag.param]
+            let _value = _tag[0]?.data_type == "Number" ? parseFloat(parseFloat(parseFloat(result[tag.param]) * parseFloat(_tag[0].scale)).toFixed(4)) : result[tag.param]
             let rs = await query(`UPDATE RawData SET value = '${_value}', is_had_data = 1 WHERE id = ${tag.id}`);
           }
 
@@ -821,7 +821,7 @@ app.post("/api/v1/push-manual", async (req, res) => {
             let serial = _allTags[z].metter_id.split("_")[1]
             const resultDataByMetter = dataSource.find(({ NGAYGIO, SO_CTO }) => NGAYGIO === _timestamp && SO_CTO === serial.toString());
             if (resultDataByMetter) {
-              let value = (_allTags[z].data_type === "Number") ? (100 * (parseFloat(resultDataByMetter[_allTags[z].parameter])) * _allTags[z].scale) / 100 : resultDataByMetter[_allTags[z].parameter]
+              let value = (_allTags[z].data_type === "Number") ? parseFloat(parseFloat((parseFloat(resultDataByMetter[_allTags[z].parameter])) * _allTags[z].scale).toFixed(4))  : resultDataByMetter[_allTags[z].parameter]
               tagTempArray.push({
                 name: `${_allTags[z].metter_id}:${_allTags[z].name}`,
                 last_value: value
@@ -847,7 +847,7 @@ app.post("/api/v1/push-manual", async (req, res) => {
         for (let z = 0; z < _allTags.length; z++) {
           let serial = _allTags[z].metter_id.split("_")[1]
           const resultDataByMetter = dataSource.find(({ SO_CTO }) => SO_CTO === serial.toString());
-          let value = (_allTags[z].data_type === "Number") ? (100 * parseFloat(resultDataByMetter[_allTags[z].parameter]) * _allTags[z].scale) / 100 : resultDataByMetter[_allTags[z].parameter]
+          let value = (_allTags[z].data_type === "Number") ? parseFloat(parseFloat(parseFloat(resultDataByMetter[_allTags[z].parameter]) * _allTags[z].scale).toFixed(4)) : resultDataByMetter[_allTags[z].parameter]
           tagTempArray.push({
             name: `${_allTags[z].metter_id}:${_allTags[z].name}`,
             last_value: value
@@ -970,7 +970,7 @@ async function delRawData() {
 
 
 //Run job every 5 minute
-var job5min = new CronJob('*/5 * * * *', async function () {
+var job5min = new CronJob('*/10 * * * *', async function () {
   await delRawData();
 }, null, true, 'Asia/Ho_Chi_Minh');
 
