@@ -417,7 +417,7 @@ async function ReadMetter() {
         if (tagData !== undefined) {
           let dataByScale
           if (dataType === "Number") {
-            dataByScale =  parseFloat(parseFloat(tagData * scale).toFixed(4))
+            dataByScale = parseFloat(parseFloat(tagData * scale).toFixed(4))
           } else {
             dataByScale = tagData
           }
@@ -466,7 +466,86 @@ async function ReadMetter() {
 
 }
 
+/**
+ * Function Read Metter to backup data as interval
+ */
+async function ReadMetterBackup(start) {
+  try {
+
+    var nextExecutionTime = await getMetterInterval();
+    let api_sources = await getApiSource()
+
+    let last7Days = moment().startOf('days').subtract(7, "days")
+
+    let dataOfAllApiSource = {}
+    for (let i = 0; i < api_sources.length; i++) {
+      const api_source = api_sources[i];
+      dataOfAllApiSource[`${api_source.connection_name}`] = await callAPI(api_source, start)
+      await delay(5000)
+    }
+    //=====> Insert Raw Data
+
+    for (let i = 0; i < api_sources.length; i++) {
+
+      const api_source = api_sources[i];
+
+      let all_tags = await getTagInRawNeedupdate(api_source.id, start)
+      let data_sources = await callAPI(api_source, start)
+      //console.log('All_tags', all_tags.length)
+      if (all_tags && data_sources.data) {
+        for (let j = 0; j < all_tags.length; j++) {
+          const tag = all_tags[j];
+          const result = data_sources.data.find(({ NGAYGIO, SO_CTO }) => NGAYGIO === tag.timestamp.toString() && SO_CTO == tag.serial.toString());
+
+          let _tag = await query(`SELECT * From Tag where api_source = '${tag.api_source}' and metter_id = '${tag.metter_id}' and parameter = '${tag.param}'`)
+
+          if (result) {
+            //console.log('---> tag', _tag[0].data_type, result[tag.param], _tag[0].scale)
+            let _value = _tag[0]?.data_type == "Number" ? parseFloat(parseFloat(parseFloat(result[tag.param]) * parseFloat(_tag[0].scale)).toFixed(4)) : result[tag.param]
+            let rs = await query(`UPDATE RawData SET value = '${_value}', is_had_data = 1 WHERE id = ${tag.id}`);
+          }
+
+        }
+      }
+    }
+    //=====> Insert Raw Data
+    console.log("------------> Read Data OK", moment().format('YYYY-MM-DD HH:mm:ss'))
+
+  }
+  catch (error) {
+    console.log(error)
+  }
+
+  setTimeout(ReadMetter, nextExecutionTime);
+
+}
+
+async function backUpLast7Days() {
+  //let start1 = moment('02-12-2021 10:00:00', "DD-MM-YYYY hh:mm:ss");
+  let date = moment().startOf('days').subtract(7, "days")
+  let end =  moment().startOf('days')
+  for (let i = 1; i <= 7; i++) {
+    if(date <= end){
+      console.log('---> ', date);
+      await ReadMetterBackup(date)
+      await delay(2000)
+      console.log('-> done: --->', date);
+    }
+    date = date.add(1, 'days')
+  }
+}
+
 ReadMetter()
+
+//=============Backup Last 7 Days================
+// At 02:00 am everyday
+var jobBackup7Days = new CronJob('07 23 * * *', async function () {
+  console.log("Backup data from last 7 day to  current day proccessing!!!")
+  backUpLast7Days()
+}, null, true, 'Asia/Ho_Chi_Minh');
+jobBackup7Days.start()
+
+//=============Backup Last 7 Days================
 
 async function getMetterInterval() {
   try {
@@ -821,7 +900,7 @@ app.post("/api/v1/push-manual", async (req, res) => {
             let serial = _allTags[z].metter_id.split("_")[1]
             const resultDataByMetter = dataSource.find(({ NGAYGIO, SO_CTO }) => NGAYGIO === _timestamp && SO_CTO === serial.toString());
             if (resultDataByMetter) {
-              let value = (_allTags[z].data_type === "Number") ? parseFloat(parseFloat((parseFloat(resultDataByMetter[_allTags[z].parameter])) * _allTags[z].scale).toFixed(4))  : resultDataByMetter[_allTags[z].parameter]
+              let value = (_allTags[z].data_type === "Number") ? parseFloat(parseFloat((parseFloat(resultDataByMetter[_allTags[z].parameter])) * _allTags[z].scale).toFixed(4)) : resultDataByMetter[_allTags[z].parameter]
               tagTempArray.push({
                 name: `${_allTags[z].metter_id}:${_allTags[z].name}`,
                 last_value: value
@@ -951,7 +1030,7 @@ async function CheckDeviceStatus() {
   }
 }
 
-setInterval(CheckDeviceStatus, 5 * 60 * 1000)
+setInterval(CheckDeviceStatus, 10 * 60 * 1000)
 
 //================================================================
 
@@ -1020,7 +1099,7 @@ async function BackUpMqtt() {
     for (var i = 0; i < allTag.length; i++) {
       result_array_tag_id[i] = allTag[i].id;
     }
-    let getTimeNeedBackups = await query(`SELECT DISTINCT timestamp  FROM RawData  WHERE tag_id IN (${result_array_tag_id.toString()}) AND is_had_data = 1 AND is_sent = 0 ORDER BY timestamp`)
+    let getTimeNeedBackups = await query(`SELECT DISTINCT TOP 500 timestamp  FROM RawData  WHERE tag_id IN (${result_array_tag_id.toString()}) AND is_had_data = 1 AND is_sent = 0 ORDER BY timestamp`)
     //console.log(getTimeNeedBackups)
     if (getTimeNeedBackups.length == 0) {
       console.log("Backup: No Data Backup!")
