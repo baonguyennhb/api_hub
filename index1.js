@@ -49,6 +49,13 @@ app.listen(port, () => {
 })
 
 /**
+ * Static file
+ */
+
+ const path = require('path')
+ app.use('/static', express.static(path.join(__dirname, 'Database')))
+
+/**
  * Init variables
  */
 
@@ -1140,6 +1147,7 @@ var job30min = new CronJob('*/40 * * * *', async function () {
 }, null, true, 'Asia/Ho_Chi_Minh');
 
 job30min.start()
+
 
 
 
