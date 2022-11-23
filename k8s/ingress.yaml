@@ -1,0 +1,16 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: api-hub-server
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/rewrite-target: /$1
+spec:
+  rules:
+    - host: api-hub-server.default.ensaas.en.internal
+    - http:
+        paths:
+          - path: /
+            backend:
+              serviceName: api-hub-server-service
+              servicePort: 4000

@@ -8,10 +8,12 @@ var bodyParser = require('body-parser')
 const common = require('./Common/query')
 const query = common.query
 const mqtt = require('mqtt');
-var EventEmitter = require('events')
+const delay = require('delay');
 const CronJob = require('cron').CronJob;
 
-// Create Table IF NOT EXISTS
+/**
+ * CREATE TABLE IF NOT EXISTS
+ */
 
 const {
   createTableDataHub,
@@ -46,7 +48,9 @@ app.listen(port, () => {
   console.log(`Server is running on port ${port}`)
 })
 
-// Variable
+/**
+ * Init variables
+ */
 
 let groupId = 'scada_UzVa32VanG4I'
 let mqttUrl = "mqtt://rabbitmq-001-pub.hz.wise-paas.com.cn:1883"
@@ -55,13 +59,10 @@ let mqttTopicCfg = `iot-2/evt/wacfg/fmt/${groupId}`
 let mqttTopicSendata = `iot-2/evt/wadata/fmt/${groupId}`
 let HbtInterval = 5
 
-// Connect MQTT Broker 
-
 let client
 let is_config = false
 let is_connected = false
 
-// Handle Connect MQTT and Push data
 
 const ConnectionMessage = require("./EdgeSdk/ConnectionMessage")
 const HeartBeatMessage = require("./EdgeSdk/HeartBeatMessage")
@@ -70,8 +71,10 @@ const DeleteTagConfigMessage = require("./EdgeSdk/DeleteTagMessage")
 const ValueTagMessage = require("./EdgeSdk/ValueTagMesage")
 const BackUpValueTagMessage = require("./EdgeSdk/BackupTagMessage")
 
-//=================================================
-// Init
+//=====================================================================
+/**
+ * Init Function 
+ */
 async function Init() {
   let config = await query(`SELECT * FROM DataHub`)
   let options = {
@@ -93,8 +96,9 @@ async function Init() {
 
   client = mqtt.connect(mqttUrl, options);
 
-  //console.log(options, config[0])
-
+  /**
+   * Mqtt client listen connect event
+   */
   client.on("connect", async ack => {
     try {
       console.log("MQTT Client Connected!")
@@ -108,7 +112,9 @@ async function Init() {
       console.log(error)
     }
   })
-  //==================================================
+  /**
+  * Mqtt client reconnect 
+  */
   client.on("reconnect", async ack => {
     try {
       console.log("MQTT Reconnect !")
@@ -116,6 +122,9 @@ async function Init() {
       console.log(error)
     }
   })
+  /**
+  * Mqtt client handle when have error event
+  */
   client.on("error", async function (ack) {
     try {
       console.log("MQTT Error!", ack.message)
@@ -125,14 +134,20 @@ async function Init() {
       console.log(error)
     }
   })
+  /**
+  * Mqtt client close connect
+  */
   client.on("close", ack => {
     try {
-      console.log("MQTT close!", ack?.message)
+      console.log("MQTT close!")
       is_connected = false
     } catch (error) {
       console.log(error)
     }
   })
+  /**
+  * Mqtt client disconnect
+  */
   client.on("disconnect", ack => {
     try {
       console.log("MQTT disconnect!", ack?.message)
@@ -141,6 +156,9 @@ async function Init() {
       console.log(error)
     }
   })
+  /**
+  * Mqtt client offline
+  */
   client.on("offline", ack => {
     try {
       console.log("MQTT offline!", ack?.message)
@@ -151,8 +169,10 @@ async function Init() {
   })
 }
 
-//Init()
-
+/**
+ * Publish data to Data Hub
+ * Default period = 5s
+ */
 async function PublishDataHub() {
   let nextPublish = 5 * 1000 //Unit ms
   let data_hub_cgf = await getDataHubConfig()
@@ -167,6 +187,9 @@ async function PublishDataHub() {
 
 PublishDataHub()
 
+/**
+ * Function Get Config of Data Hub
+ */
 async function getDataHubConfig() {
   try {
     let sql = "SELECT * FROM DataHub"
@@ -177,12 +200,18 @@ async function getDataHubConfig() {
   }
 }
 
+/**
+ * Function send HeatBeat Message
+ */
 const sendHeartBeatMessage = () => {
   const _messageHeartBeat = HeartBeatMessage(groupId)
   const topic = mqttTopicConn
   client?.publish(topic, JSON.stringify(_messageHeartBeat), { qos: 1, retain: false });
 }
 
+/**
+ * Function send Tag Config to Data Hub
+ */
 const sendTagConfigMessage = async () => {
   try {
     const topic = mqttTopicCfg
@@ -192,8 +221,8 @@ const sendTagConfigMessage = async () => {
     const allTag = await getMqttTag()
     const profileConfigTag = await query("SELECT * FROM ProfileConfig")
     const diffTag = profileConfigTag.filter(({ name: name1, tag_type: type1 }) => !allTag.some(({ name: name2, tag_type: type2 }) => name2 === name1 && type1 === type2));
-    console.log("Diff Tag:")
-    console.log(diffTag)
+    // console.log("Diff Tag:")
+    // console.log(diffTag)
     //===============>
     const _messageConfigTag = ConfigTagMessage(groupId, allTag, diffTag)
     client?.publish(topic, JSON.stringify(_messageConfigTag), { qos: 1, retain: false });
@@ -223,6 +252,9 @@ const sendTagConfigMessage = async () => {
   }
 }
 
+/**
+ * Function Send Delete Config Tag Message to Data Hub
+ */
 const SendDeleteConfigTag = async (tag, groupId, heatbeat) => {
   try {
     const _messageDeleteConfigTag = DeleteTagConfigMessage.DeleteTag(tag, groupId, heatbeat)
@@ -240,19 +272,18 @@ const SendDeleteConfigTag = async (tag, groupId, heatbeat) => {
 
 const SendDataTagToDataHub = async () => {
   try {
-    //console.log(moment().format("HH:mm:ss"))
     const allTag = await getMqttTag()
     var result_array_tag_id = [];
     for (var i = 0; i < allTag.length; i++) {
       result_array_tag_id[i] = allTag[i].id;
     }
     let getTimeStampInApiSource = await query("SELECT DISTINCT time_in_api_source  FROM Tag")
-    //console.log(getTimeStampInApiSource)
     for (let i = 0; i < getTimeStampInApiSource.length; i++) {
       let timestampStr = getTimeStampInApiSource[i].time_in_api_source
       let timestampFormat = moment(getTimeStampInApiSource[i]?.time_in_api_source).format()
       let sqlSelectTag = `select * from Tag where id IN (${result_array_tag_id.toString()}) and time_in_api_source='${timestampStr}'`
       let allTagWithData = await query(sqlSelectTag)
+      console.log(allTagWithData)
       allTagWithData = allTagWithData.map(value => {
         return {
           name: `${value.metter_id}:${value.name}`,
@@ -287,8 +318,12 @@ const getMqttTag = async () => {
   const allTag = await query(sql)
   return allTag
 }
-
-// Handle Call API with 1 api source
+/**
+ * Function Handle Call API 
+ * @param {*} api_source 
+ * @param {*} start 
+ * @returns 
+ */
 async function callAPI(api_source, start) {
   try {
     let startOfDate = moment(start).startOf('day').format("YYYY-MM-DD HH:mm:ss")
@@ -331,9 +366,9 @@ async function callAPI(api_source, start) {
   }
 }
 
-//=================================================
-// Read Metter as interval
-
+/**
+ * Function Read Metter as interval
+ */
 async function ReadMetter() {
   try {
 
@@ -344,7 +379,6 @@ async function ReadMetter() {
     if (moment().hour() <= 0) {
       start = moment().subtract(2, 'hours').startOf('days')
     }
-    console.log(start)
 
     let testTime = "2022-06-18 00:00:00"
 
@@ -384,7 +418,7 @@ async function ReadMetter() {
         if (tagData !== undefined) {
           let dataByScale
           if (dataType === "Number") {
-            dataByScale = tagData * scale
+            dataByScale = parseFloat(parseFloat(tagData * scale).toFixed(4))
           } else {
             dataByScale = tagData
           }
@@ -414,7 +448,7 @@ async function ReadMetter() {
 
           if (result) {
             //console.log('---> tag', _tag[0].data_type, result[tag.param], _tag[0].scale)
-            let _value = _tag[0]?.data_type == "Number" ? parseFloat(result[tag.param]) * parseFloat(_tag[0].scale) : result[tag.param]
+            let _value = _tag[0]?.data_type == "Number" ? parseFloat(parseFloat(parseFloat(result[tag.param]) * parseFloat(_tag[0].scale)).toFixed(4)) : result[tag.param]
             let rs = await query(`UPDATE RawData SET value = '${_value}', is_had_data = 1 WHERE id = ${tag.id}`);
           }
 
@@ -422,7 +456,7 @@ async function ReadMetter() {
       }
     }
     //=====> Insert Raw Data
-    console.log("------------> Read Data OK", moment().format('HH:mm:ss'))
+    console.log("------------> Read Data OK", moment().format('YYYY-MM-DD HH:mm:ss'))
 
   }
   catch (error) {
@@ -433,8 +467,86 @@ async function ReadMetter() {
 
 }
 
+/**
+ * Function Read Metter to backup data as interval
+ */
+async function ReadMetterBackup(start) {
+  try {
+
+    var nextExecutionTime = await getMetterInterval();
+    let api_sources = await getApiSource()
+
+    let last7Days = moment().startOf('days').subtract(7, "days")
+
+    let dataOfAllApiSource = {}
+    for (let i = 0; i < api_sources.length; i++) {
+      const api_source = api_sources[i];
+      dataOfAllApiSource[`${api_source.connection_name}`] = await callAPI(api_source, start)
+      await delay(5000)
+    }
+    //=====> Insert Raw Data
+
+    for (let i = 0; i < api_sources.length; i++) {
+
+      const api_source = api_sources[i];
+
+      let all_tags = await getTagInRawNeedupdate(api_source.id, start)
+      let data_sources = await callAPI(api_source, start)
+      //console.log('All_tags', all_tags.length)
+      if (all_tags && data_sources.data) {
+        for (let j = 0; j < all_tags.length; j++) {
+          const tag = all_tags[j];
+          const result = data_sources.data.find(({ NGAYGIO, SO_CTO }) => NGAYGIO === tag.timestamp.toString() && SO_CTO == tag.serial.toString());
+
+          let _tag = await query(`SELECT * From Tag where api_source = '${tag.api_source}' and metter_id = '${tag.metter_id}' and parameter = '${tag.param}'`)
+
+          if (result) {
+            //console.log('---> tag', _tag[0].data_type, result[tag.param], _tag[0].scale)
+            let _value = _tag[0]?.data_type == "Number" ? parseFloat(parseFloat(parseFloat(result[tag.param]) * parseFloat(_tag[0].scale)).toFixed(4)) : result[tag.param]
+            let rs = await query(`UPDATE RawData SET value = '${_value}', is_had_data = 1 WHERE id = ${tag.id}`);
+          }
+
+        }
+      }
+    }
+    //=====> Insert Raw Data
+    console.log("------------> Read Data OK", moment().format('YYYY-MM-DD HH:mm:ss'))
+
+  }
+  catch (error) {
+    console.log(error)
+  }
+
+  setTimeout(ReadMetter, nextExecutionTime);
+
+}
+
+async function backUpLast7Days() {
+  //let start1 = moment('02-12-2021 10:00:00', "DD-MM-YYYY hh:mm:ss");
+  let date = moment().startOf('days').subtract(7, "days")
+  let end = moment().startOf('days')
+  for (let i = 1; i <= 7; i++) {
+    if (date <= end) {
+      console.log('---> ', date);
+      await ReadMetterBackup(date)
+      await delay(2000)
+      console.log('-> done: --->', date);
+    }
+    date = date.add(1, 'days')
+  }
+}
+
 ReadMetter()
 
+//=============Backup Last 7 Days================
+// At 02:00 am everyday
+var jobBackup7Days = new CronJob('07 23 * * *', async function () {
+  console.log("Backup data from last 7 day to  current day proccessing!!!")
+  backUpLast7Days()
+}, null, true, 'Asia/Ho_Chi_Minh');
+jobBackup7Days.start()
+
+//=============Backup Last 7 Days================
 
 async function getMetterInterval() {
   try {
@@ -480,14 +592,11 @@ async function setTagInRawData() {
                 JOIN  ApiSource on ApiSource.id = Tag.api_source
               `
     const tags = await query(sql)
-
-    //console.log('tags', tags)
-
     for (let i = 0; i < 48; i++) {
       timestamp_str = start.format('YYYY-MM-DD HH:mm:ss')
       await tags.forEach(async e => {
         //console.log(e.name )
-        if(e.key_time == 'sDate'){
+        if (e.key_time == 'sDate') {
           timestamp_str = start.format('YYYY-MM-DD 00:00:00')
         }
         let sql2 = `INSERT INTO RawData (timestamp, api_source, tag_id, metter_id, serial, param, tag_name) Values ( '${timestamp_str}', ${e.api_source}, ${e.TagId}, '${e.metter_id}', ${e.serial}, '${e.parameter}', '${e.name}' )`
@@ -496,13 +605,11 @@ async function setTagInRawData() {
         } catch (error) {
           //console.log(error.message)
         }
-
       });
 
       start = moment(start).add(30, 'minutes')
       //console.log(metter_tags)
     }
-
   } catch (e) {
     console.log(e.message)
   }
@@ -521,7 +628,9 @@ async function getTagInRawNeedupdate(api_source, start1) {
 }
 
 //============================================================
-
+/**
+ * Router API
+ */
 const deviceRouter = require('./Routes/device.route')
 const tagRouter = require('./Routes/tag.route')
 const deviceTagRouter = require('./Routes/device_tag.route')
@@ -529,9 +638,6 @@ const userRouter = require('./Routes/user.route')
 const apiSourceRouter = require('./Routes/apiSource.route');
 const dataHubRouter = require('./Routes/dataHub.route');
 const uploadRouter = require('./Routes/uploadFile.route');
-
-const { stat } = require('fs');
-const delay = require('delay');
 
 app.group('/api/v1', (router) => {
   router.use('/user', userRouter)
@@ -660,22 +766,18 @@ app.post("/api/v1/data-hub/connect", async (req, res) => {
       client.end(true, {}, async () => {
         await Init()
         await delay(2000)
-        // client.on("connect", () => {
         if (is_connected) {
           res.status(200).send({
             code: 200,
             message: "Connect Sucessfully!"
           })
         }
-        // })
-        // client.on("error", () => {
         else {
           res.status(200).send({
             code: 400,
             error: "Connect Failed, Please check infomation again!"
           })
         }
-        // })
       })
     } else {
       await Init()
@@ -686,8 +788,6 @@ app.post("/api/v1/data-hub/connect", async (req, res) => {
           message: "Connect Sucessfully!"
         })
       }
-      // })
-      // client.on("error", () => {
       else {
         res.status(200).send({
           code: 400,
@@ -729,6 +829,9 @@ app.post("/api/v1/data-hub/upload-config", async (req, res) => {
   }
 })
 //=================Push Manually=================================
+/**
+ * Function push data manually to Data Hub
+ */
 
 app.post("/api/v1/push-manual", async (req, res) => {
   try {
@@ -793,20 +896,16 @@ app.post("/api/v1/push-manual", async (req, res) => {
             let serial = _allTags[z].metter_id.split("_")[1]
             const resultDataByMetter = dataSource.find(({ NGAYGIO, SO_CTO }) => NGAYGIO === _timestamp && SO_CTO === serial.toString());
             if (resultDataByMetter) {
-              // console.log("Data: ")
-              // console.log(resultDataByMetter)
-              let value = (_allTags[z].data_type === "Number") ? parseFloat(resultDataByMetter[_allTags[z].parameter]) : resultDataByMetter[_allTags[z].parameter]
+              let value = (_allTags[z].data_type === "Number") ? parseFloat(parseFloat((parseFloat(resultDataByMetter[_allTags[z].parameter])) * _allTags[z].scale).toFixed(4)) : resultDataByMetter[_allTags[z].parameter]
               tagTempArray.push({
                 name: `${_allTags[z].metter_id}:${_allTags[z].name}`,
                 last_value: value
               })
             }
           }
-          //console.log(tagTempArray)
           const topic = mqttTopicSendata
           let timestampFormat = moment(_timestamp).format()
           const valueTagMessage = ValueTagMessage(tagTempArray, groupId, timestampFormat)
-          //client.publish(topic, JSON.stringify(valueTagMessage), { qos: 1, retain: false });
           if (is_connected) {
             let rs = client.publish(topic, JSON.stringify(valueTagMessage), { qos: 1, retain: false });
             if (rs.connected) {
@@ -823,9 +922,7 @@ app.post("/api/v1/push-manual", async (req, res) => {
         for (let z = 0; z < _allTags.length; z++) {
           let serial = _allTags[z].metter_id.split("_")[1]
           const resultDataByMetter = dataSource.find(({ SO_CTO }) => SO_CTO === serial.toString());
-          // console.log("Data: ")
-          // console.log(resultDataByMetter)
-          let value = (_allTags[z].data_type === "Number") ? parseFloat(resultDataByMetter[_allTags[z].parameter]) : resultDataByMetter[_allTags[z].parameter]
+          let value = (_allTags[z].data_type === "Number") ? parseFloat(parseFloat(parseFloat(resultDataByMetter[_allTags[z].parameter]) * _allTags[z].scale).toFixed(4)) : resultDataByMetter[_allTags[z].parameter]
           tagTempArray.push({
             name: `${_allTags[z].metter_id}:${_allTags[z].name}`,
             last_value: value
@@ -834,7 +931,6 @@ app.post("/api/v1/push-manual", async (req, res) => {
         const topic = mqttTopicSendata
         let timestampFormat = moment(_timestamp).format()
         const valueTagMessage = ValueTagMessage(tagTempArray, groupId, timestampFormat)
-        //client.publish(topic, JSON.stringify(valueTagMessage), { qos: 1, retain: false });
         if (is_connected) {
           let rs = client.publish(topic, JSON.stringify(valueTagMessage), { qos: 1, retain: false });
           if (rs.connected) {
@@ -862,14 +958,14 @@ app.post("/api/v1/push-manual", async (req, res) => {
 
 //================================================================
 // Run job every 0h5 am everyday
-var job0h5 = new CronJob('5 0 * * *', async function () {
+var job0h5 = new CronJob('45 14 * * *', async function () {
   await setTagInRawData()
 
 }, null, true, 'Asia/Ho_Chi_Minh');
 
 job0h5.start()
 setTagInRawData()
-delRawData()
+//delRawData()
 
 //================================================================
 // Check Status API SOURCE
@@ -890,7 +986,7 @@ async function CheckDeviceStatus() {
     }
 
     let testTime = "2022-06-18 00:00:00"
-    console.log("Time Check: " + moment(start).format("YYYY-MM-DD HH:mm:ss"))
+    // console.log("Time Check: " + moment(start).format("YYYY-MM-DD HH:mm:ss"))
     //====> Update LastValue in Tag Table
     let dataOfAllApiSource = {}
     for (let i = 0; i < api_sources.length; i++) {
@@ -902,7 +998,7 @@ async function CheckDeviceStatus() {
     let sql = "SELECT * " +
       "FROM ApiSource " +
       "LEFT JOIN Metter " +
-      "ON ApiSource.id = Metter.api_source "
+      "ON ApiSource.id = Metter.api_source"
 
     const allMetter = await query(sql)
     //console.log(allMetter)
@@ -916,21 +1012,23 @@ async function CheckDeviceStatus() {
       // console.log(moment(NGAYGIO).unix())
       if (NGAYGIO !== undefined) {
         let deltaTime = moment().unix() - moment(NGAYGIO).unix()
-        //let statusDevice = (deltaTime > 7200) ? 0 : 1
-        let statusDevice = (filterDataBySerial.length > 0) ? 1 : 0
+        let statusDevice = (deltaTime > 3 * 3600) ? 0 : 1
+        // let statusDevice = (filterDataBySerial.length > 0) ? 1 : 0
         let updatedDevice = await query(`UPDATE Metter SET status= ${statusDevice} WHERE id=${id} `)
+      } else {
+        await query(`UPDATE Metter SET status= 0 WHERE id=${id} `)
       }
     }
     //=====> Insert Raw Data
-    console.log("---> Check Status", moment().format('HH:mm:ss'))
-    console.log("UPDATE STATUS METTER SUCESS!")
+    console.log("------------> Check Status", moment().format('HH:mm:ss'))
+    console.log("------------> UPDATE STATUS METTER SUCESS!")
   }
   catch (error) {
     console.log(error)
   }
 }
 
-setInterval(CheckDeviceStatus, 5 * 60 * 1000)
+setInterval(CheckDeviceStatus, 1 * 60 * 1000)
 
 //================================================================
 
@@ -938,18 +1036,18 @@ async function delRawData() {
   try {
     let end = moment().subtract(3, 'days').startOf('day').format('YYYY-MM-DD HH:mm:ss')
     let sql_str = `DELETE FROM RawData Where id in (select id from RawData WHERE timestamp < '${end}' order by id LIMIT 200) `
-    console.log(sql_str)
+    console.log("Delete Raw Data Proccessing!!!")
     let rs = await query(sql_str)
-    console.log('====> Deleted' + rs)
+    console.log('------------> Deleted' + rs)
   } catch (err) {
-    console.log("====> Error Delete" + err.message)
+    console.log("------------> Error Delete" + err.message)
   }
 
 }
 
 
 //Run job every 5 minute
-var job5min = new CronJob('*/5 * * * *', async function () {
+var job5min = new CronJob('*/10 * * * *', async function () {
   await delRawData();
 }, null, true, 'Asia/Ho_Chi_Minh');
 
@@ -978,28 +1076,31 @@ async function updateIsSent(tags) {
 
 
 //========== BackUp Data To Data-Hub==============
+/**
+ * Function Backup Data To Data-Hub
+ */
 
 async function BackUpMqtt() {
   try {
     const topic = mqttTopicSendata
     if (client?.connected !== true) {
-      console.log("No Mqtt Client!")
+      console.log("Backup: No Mqtt Client!")
       return
     }
     if (!is_config) {
-      console.log("No Config Tag!")
+      console.log("Backup: No Config Tag!")
       return
     }
     const now = moment().format("YYYY-MM-DD HH:mm:ss")
     const allTag = await getMqttTag()
     var result_array_tag_id = [];
-    for (var i = 0; i < allTag.length; i++) {
+    for (var i = 0; i < allTag.length - 300; i++) {
       result_array_tag_id[i] = allTag[i].id;
     }
-    let getTimeNeedBackups = await query(`SELECT DISTINCT timestamp  FROM RawData  WHERE tag_id IN (${result_array_tag_id.toString()}) AND is_had_data = 1 AND is_sent = 0 ORDER BY timestamp`)
+    let getTimeNeedBackups = await query(`SELECT *  FROM RawData  WHERE tag_id IN (${result_array_tag_id.toString()}) AND is_had_data = 1 AND is_sent = 0 ORDER BY timestamp`)
     //console.log(getTimeNeedBackups)
     if (getTimeNeedBackups.length == 0) {
-      console.log("No Data Backup!")
+      console.log("Backup: No Data Backup!")
       return
     }
     for (let i = 0; i < getTimeNeedBackups.length; i++) {
@@ -1017,19 +1118,21 @@ async function BackUpMqtt() {
       const valueBackupTagMessage = BackUpValueTagMessage(dataBackup, groupId, time)
       let rs = client?.publish(topic, JSON.stringify(valueBackupTagMessage), { qos: 1, retain: false });
       if (rs?.connected) {
-        console.log(`Backup Data Sucessfully with time: ${time}`)
+        console.log(`Backup: Backup Data Sucessfully with time: ${time}`)
         updateIsSent(dataBackup)
       }
       await delay(2000)
     }
   } catch (error) {
     console.log(error)
-    console.log("Push Backup Data Failed!")
+    console.log("Backup: Push Backup Data Failed!")
   }
 }
-//Run job every 30 minute
-var job30min = new CronJob('*/30 * * * *', async function () {
-  console.log("Backuping!")
+/**
+ * Run job Backup Function every 30 minute
+ */
+var job30min = new CronJob('*/40 * * * *', async function () {
+  console.log("Backup data proccessing!!!")
   if (is_config) {
     await BackUpMqtt()
   }
@@ -1038,7 +1141,6 @@ var job30min = new CronJob('*/30 * * * *', async function () {
 
 job30min.start()
 
-//===================Backup To DataHub============================
 
 
 

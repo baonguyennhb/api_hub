@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-hub-server-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      component: api-hub-server
+  template:
+    metadata:
+      labels:
+        component: api-hub-server
+    spec:
+      containers:
+        - name: api-hub-server
+          image: harbor.wise-paas.io/library/api-hub-server:v-1.0.0
+          ports:
+            - containerPort: 4000
+          resources:
+            limits:
+              cpu: "8"
+              memory: 1024Mi
+              ephemeral-storage: 128Mi
+            requests:
+              cpu: "2"
+              memory: 512Mi
+          env:
+            - name: TZ
+              value: Asia/Ho_Chi_Minh
+        
