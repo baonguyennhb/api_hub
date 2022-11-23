@@ -283,6 +283,7 @@ const SendDataTagToDataHub = async () => {
       let timestampFormat = moment(getTimeStampInApiSource[i]?.time_in_api_source).format()
       let sqlSelectTag = `select * from Tag where id IN (${result_array_tag_id.toString()}) and time_in_api_source='${timestampStr}'`
       let allTagWithData = await query(sqlSelectTag)
+      console.log(allTagWithData)
       allTagWithData = allTagWithData.map(value => {
         return {
           name: `${value.metter_id}:${value.name}`,
@@ -523,9 +524,9 @@ async function ReadMetterBackup(start) {
 async function backUpLast7Days() {
   //let start1 = moment('02-12-2021 10:00:00', "DD-MM-YYYY hh:mm:ss");
   let date = moment().startOf('days').subtract(7, "days")
-  let end =  moment().startOf('days')
+  let end = moment().startOf('days')
   for (let i = 1; i <= 7; i++) {
-    if(date <= end){
+    if (date <= end) {
       console.log('---> ', date);
       await ReadMetterBackup(date)
       await delay(2000)
@@ -591,9 +592,6 @@ async function setTagInRawData() {
                 JOIN  ApiSource on ApiSource.id = Tag.api_source
               `
     const tags = await query(sql)
-
-    //console.log('tags', tags)
-
     for (let i = 0; i < 48; i++) {
       timestamp_str = start.format('YYYY-MM-DD HH:mm:ss')
       await tags.forEach(async e => {
@@ -607,13 +605,11 @@ async function setTagInRawData() {
         } catch (error) {
           //console.log(error.message)
         }
-
       });
 
       start = moment(start).add(30, 'minutes')
       //console.log(metter_tags)
     }
-
   } catch (e) {
     console.log(e.message)
   }
@@ -962,14 +958,14 @@ app.post("/api/v1/push-manual", async (req, res) => {
 
 //================================================================
 // Run job every 0h5 am everyday
-var job0h5 = new CronJob('5 0 * * *', async function () {
+var job0h5 = new CronJob('45 14 * * *', async function () {
   await setTagInRawData()
 
 }, null, true, 'Asia/Ho_Chi_Minh');
 
 job0h5.start()
 setTagInRawData()
-delRawData()
+//delRawData()
 
 //================================================================
 // Check Status API SOURCE
@@ -1002,7 +998,7 @@ async function CheckDeviceStatus() {
     let sql = "SELECT * " +
       "FROM ApiSource " +
       "LEFT JOIN Metter " +
-      "ON ApiSource.id = Metter.api_source "
+      "ON ApiSource.id = Metter.api_source"
 
     const allMetter = await query(sql)
     //console.log(allMetter)
@@ -1016,9 +1012,11 @@ async function CheckDeviceStatus() {
       // console.log(moment(NGAYGIO).unix())
       if (NGAYGIO !== undefined) {
         let deltaTime = moment().unix() - moment(NGAYGIO).unix()
-        //let statusDevice = (deltaTime > 7200) ? 0 : 1
-        let statusDevice = (filterDataBySerial.length > 0) ? 1 : 0
+        let statusDevice = (deltaTime > 3 * 3600) ? 0 : 1
+        // let statusDevice = (filterDataBySerial.length > 0) ? 1 : 0
         let updatedDevice = await query(`UPDATE Metter SET status= ${statusDevice} WHERE id=${id} `)
+      } else {
+        await query(`UPDATE Metter SET status= 0 WHERE id=${id} `)
       }
     }
     //=====> Insert Raw Data
@@ -1030,7 +1028,7 @@ async function CheckDeviceStatus() {
   }
 }
 
-setInterval(CheckDeviceStatus, 10 * 60 * 1000)
+setInterval(CheckDeviceStatus, 1 * 60 * 1000)
 
 //================================================================
 
@@ -1096,10 +1094,10 @@ async function BackUpMqtt() {
     const now = moment().format("YYYY-MM-DD HH:mm:ss")
     const allTag = await getMqttTag()
     var result_array_tag_id = [];
-    for (var i = 0; i < allTag.length; i++) {
+    for (var i = 0; i < allTag.length - 300; i++) {
       result_array_tag_id[i] = allTag[i].id;
     }
-    let getTimeNeedBackups = await query(`SELECT DISTINCT TOP 500 timestamp  FROM RawData  WHERE tag_id IN (${result_array_tag_id.toString()}) AND is_had_data = 1 AND is_sent = 0 ORDER BY timestamp`)
+    let getTimeNeedBackups = await query(`SELECT *  FROM RawData  WHERE tag_id IN (${result_array_tag_id.toString()}) AND is_had_data = 1 AND is_sent = 0 ORDER BY timestamp`)
     //console.log(getTimeNeedBackups)
     if (getTimeNeedBackups.length == 0) {
       console.log("Backup: No Data Backup!")
@@ -1133,7 +1131,7 @@ async function BackUpMqtt() {
 /**
  * Run job Backup Function every 30 minute
  */
-var job30min = new CronJob('*/30 * * * *', async function () {
+var job30min = new CronJob('*/40 * * * *', async function () {
   console.log("Backup data proccessing!!!")
   if (is_config) {
     await BackUpMqtt()
